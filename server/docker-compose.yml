@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: streetvibe-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - streetvibe-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    container_name: streetvibe-auth-service
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
+    restart: always
+    environment:
+      PORT: ${AUTH_SERVICE_PORT:-8081}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      DB_NAME: auth_db
+      JWT_SECRET: ${JWT_SECRET:-super-secret-streetvibe-jwt-key-2026}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8081}:${AUTH_SERVICE_PORT:-8081}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - streetvibe-network
+
+  product-service:
+    container_name: streetvibe-product-service
+    build:
+      context: .
+      dockerfile: ./services/product-service/Dockerfile
+    restart: always
+    environment:
+      PORT: ${PRODUCT_SERVICE_PORT:-8082}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      DB_NAME: product_db
+      JWT_SECRET: ${JWT_SECRET:-super-secret-streetvibe-jwt-key-2026}
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-8082}:${PRODUCT_SERVICE_PORT:-8082}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - streetvibe-network
+
+  customer-service:
+    container_name: streetvibe-customer-service
+    build:
+      context: .
+      dockerfile: ./services/customer-service/Dockerfile
+    restart: always
+    environment:
+      PORT: ${CUSTOMER_SERVICE_PORT:-8083}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      DB_NAME: customer_db
+      JWT_SECRET: ${JWT_SECRET:-super-secret-streetvibe-jwt-key-2026}
+    ports:
+      - "${CUSTOMER_SERVICE_PORT:-8083}:${CUSTOMER_SERVICE_PORT:-8083}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - streetvibe-network
+
+  media-service:
+    container_name: streetvibe-media-service
+    build:
+      context: .
+      dockerfile: ./services/media-service/Dockerfile
+    restart: always
+    environment:
+      PORT: ${MEDIA_SERVICE_PORT:-8084}
+      UPLOAD_DIR: /app/uploads
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-streetvibe-jwt-key-2026}
+    volumes:
+      - ./services/media-service/uploads:/app/uploads
+    ports:
+      - "${MEDIA_SERVICE_PORT:-8084}:${MEDIA_SERVICE_PORT:-8084}"
+    networks:
+      - streetvibe-network
+
+  api-gateway:
+    container_name: streetvibe-api-gateway
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    restart: always
+    environment:
+      PORT: ${GATEWAY_PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-streetvibe-jwt-key-2026}
+      AUTH_SERVICE_URL: http://auth-service:${AUTH_SERVICE_PORT:-8081}
+      PRODUCT_SERVICE_URL: http://product-service:${PRODUCT_SERVICE_PORT:-8082}
+      CUSTOMER_SERVICE_URL: http://customer-service:${CUSTOMER_SERVICE_PORT:-8083}
+      MEDIA_SERVICE_URL: http://media-service:${MEDIA_SERVICE_PORT:-8084}
+    ports:
+      - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"
+    depends_on:
+      - auth-service
+      - product-service
+      - customer-service
+      - media-service
+    networks:
+      - streetvibe-network
+
+networks:
+  streetvibe-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

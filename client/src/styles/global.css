@@ -1,0 +1,69 @@
+:root {
+  font-family: "Poppins", "Arial", sans-serif;
+  color: #181a16;
+  background: #fbfaf6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  --color-ink: #181a16;
+  --color-muted: #777a72;
+  --color-paper: #fbfaf6;
+  --color-panel: #f0efe9;
+  --color-line: #e6e5de;
+  --color-lime: #d7ff3f;
+  --color-white: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  color: var(--color-ink);
+  background: var(--color-lime);
+}
+
+:focus-visible {
+  outline: 3px solid #9cbe21;
+  outline-offset: 3px;
+}

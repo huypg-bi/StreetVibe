@@ -1,0 +1,35 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Client dependencies and builds
+client/node_modules/
+client/dist/
+client/dist-ssr/
+*.local
+
+# Server Go binaries and env
+server/**/bin/
+server/**/tmp/
+server/**/uploads/*
+!server/**/uploads/.gitkeep
+server/**/.env
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Docker and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getCategories } from "../../products/api/productsApi";
+import AdminModal from "./AdminModal";
 import { createCategory, updateCategory, deleteCategory } from "../api/adminApi";
 
 const emptyForm = { name: "", description: "", isActive: "false" };
@@ -9,6 +10,7 @@ export default function CategoriesPanel() {
 
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [createForm, setCreateForm] = useState(emptyForm);
+    const closeCreateForm = useCallback(() => setShowCreateForm(false), []);
 
     const [showUpdateForm, setShowUpdateForm] = useState(false);
     const [updateForm, setUpdateForm] = useState(null);
@@ -73,40 +75,72 @@ export default function CategoriesPanel() {
 
     return (
         <div className="categories-container">
-            <h1>Quản lý Category</h1>
+            <div className="admin-management-header">
+                <div>
+                    <span className="admin-management-eyebrow">[ DROP TAXONOMY ]</span>
+                    <h1>Quản lý Category</h1>
+                </div>
+                <button
+                    type="button"
+                    className="admin-add-button"
+                    onClick={() => setShowCreateForm(true)}
+                >
+                    + Thêm category
+                </button>
+            </div>
 
-            <button type="button" onClick={() => setShowCreateForm(true)}>+ Thêm category</button>
-
-            {/* Form create */}
             {showCreateForm && (
-                <form onSubmit={handleCreate}>
-                    <input
-                        type="text"
-                        placeholder="Tên category"
-                        value={createForm.name}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                    />
+                <AdminModal
+                    title="Thêm category"
+                    titleId="create-category-modal-title"
+                    eyebrow="[ CATEGORY SETUP ]"
+                    onClose={closeCreateForm}
+                >
+                    <form onSubmit={handleCreate} className="admin-modal-form">
+                        <div className="admin-modal-form-grid">
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-category-name">Tên category</label>
+                                <input
+                                    id="create-category-name"
+                                    type="text"
+                                    placeholder="Tên category"
+                                    value={createForm.name}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                                    autoFocus
+                                    required
+                                />
+                            </div>
 
-                    <input
-                        type="text"
-                        placeholder="Mô tả"
-                        value={createForm.description}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
-                    />
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-category-description">Mô tả</label>
+                                <textarea
+                                    id="create-category-description"
+                                    placeholder="Mô tả category"
+                                    value={createForm.description}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+                                    rows="3"
+                                />
+                            </div>
 
-                    <select
-                        value={createForm.isActive}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, isActive: e.target.value }))}
-                    >
-                        <option value="false">Ẩn</option>
-                        <option value="true">Hiện</option>
-                    </select>
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-category-status">Trạng thái</label>
+                                <select
+                                    id="create-category-status"
+                                    value={createForm.isActive}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, isActive: e.target.value }))}
+                                >
+                                    <option value="false">Ẩn</option>
+                                    <option value="true">Hiện</option>
+                                </select>
+                            </div>
+                        </div>
 
-                    <div className="form-actions">
-                        <button type="submit" className="btn-save">Lưu</button>
-                        <button type="button" className="btn-cancel" onClick={() => setShowCreateForm(false)}>Hủy</button>
-                    </div>
-                </form>
+                        <div className="admin-modal-actions">
+                            <button type="button" className="admin-modal-cancel" onClick={closeCreateForm}>Hủy</button>
+                            <button type="submit" className="admin-modal-submit">Lưu category</button>
+                        </div>
+                    </form>
+                </AdminModal>
             )}
 
             <table>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getCategories } from "../../products/api/productsApi";
+import AdminModal from "./AdminModal";
 import {
     getProducts,
     createProduct,
@@ -30,6 +31,7 @@ export default function ProductsPanel() {
     const [createFiles, setCreateFiles] = useState(null);
     const [uploadMessage, setUploadMessage] = useState("");
     const [uploadError, setUploadError] = useState("");
+    const closeCreateForm = useCallback(() => setShowCreateForm(false), []);
 
     const [showUpdateForm, setShowUpdateForm] = useState(false);
     const [updateForm, setUpdateForm] = useState(null);
@@ -167,85 +169,144 @@ export default function ProductsPanel() {
 
     return (
         <div className="products-container">
-            <h1>Quản lý sản phẩm</h1>
-
-            <button type="button" onClick={() => setShowCreateForm(true)}>+ Thêm sản phẩm</button>
+            <div className="admin-management-header">
+                <div>
+                    <span className="admin-management-eyebrow">[ INVENTORY MATRIX ]</span>
+                    <h1>Quản lý sản phẩm</h1>
+                </div>
+                <button
+                    type="button"
+                    className="admin-add-button"
+                    onClick={() => setShowCreateForm(true)}
+                >
+                    + Thêm sản phẩm
+                </button>
+            </div>
 
             {showCreateForm && (
-                <form onSubmit={handleCreateSubmit}>
-                    <input
-                        type="text"
-                        placeholder="Tên sản phẩm"
-                        value={createForm.name}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                    />
-                    <p className="error">{createErrors.name}</p>
+                <AdminModal
+                    title="Thêm sản phẩm"
+                    titleId="create-product-modal-title"
+                    eyebrow="[ NEW INVENTORY UNIT ]"
+                    onClose={closeCreateForm}
+                >
+                    <form onSubmit={handleCreateSubmit} className="admin-modal-form">
+                        <div className="admin-modal-form-grid">
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-product-name">Tên sản phẩm</label>
+                                <input
+                                    id="create-product-name"
+                                    type="text"
+                                    placeholder="Tên sản phẩm"
+                                    value={createForm.name}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                                    autoFocus
+                                />
+                                {createErrors.name && <p className="admin-modal-error">{createErrors.name}</p>}
+                            </div>
 
-                    <input
-                        type="number"
-                        placeholder="Giá"
-                        value={createForm.price}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, price: e.target.value }))}
-                    />
-                    <p className="error">{createErrors.price}</p>
+                            <div className="admin-modal-field">
+                                <label htmlFor="create-product-price">Giá</label>
+                                <input
+                                    id="create-product-price"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    placeholder="Giá"
+                                    value={createForm.price}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, price: e.target.value }))}
+                                />
+                                {createErrors.price && <p className="admin-modal-error">{createErrors.price}</p>}
+                            </div>
 
-                    <input
-                        type="text"
-                        placeholder="Mô tả"
-                        value={createForm.description}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
-                    />
-                    <p className="error">{createErrors.description}</p>
+                            <div className="admin-modal-field">
+                                <label htmlFor="create-product-stock">Số lượng tồn kho</label>
+                                <input
+                                    id="create-product-stock"
+                                    type="number"
+                                    min="0"
+                                    placeholder="Số lượng tồn kho"
+                                    value={createForm.stock}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, stock: e.target.value }))}
+                                />
+                                {createErrors.stock && <p className="admin-modal-error">{createErrors.stock}</p>}
+                            </div>
 
-                    <input
-                        type="number"
-                        placeholder="Số lượng tồn kho"
-                        value={createForm.stock}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, stock: e.target.value }))}
-                    />
-                    <p className="error">{createErrors.stock}</p>
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-product-description">Mô tả</label>
+                                <textarea
+                                    id="create-product-description"
+                                    placeholder="Mô tả sản phẩm"
+                                    value={createForm.description}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+                                    rows="3"
+                                />
+                                {createErrors.description && <p className="admin-modal-error">{createErrors.description}</p>}
+                            </div>
 
-                    <input
-                        type="number"
-                        placeholder="Số lượng đã bán"
-                        value={createForm.soldCount}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, soldCount: e.target.value }))}
-                    />
+                            <div className="admin-modal-field">
+                                <label htmlFor="create-product-sold-count">Số lượng đã bán</label>
+                                <input
+                                    id="create-product-sold-count"
+                                    type="number"
+                                    min="0"
+                                    placeholder="Số lượng đã bán"
+                                    value={createForm.soldCount}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, soldCount: e.target.value }))}
+                                />
+                            </div>
 
-                    <select
-                        value={createForm.isFeatured}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, isFeatured: e.target.value }))}
-                    >
-                        <option value="false">Normal</option>
-                        <option value="true">HOT</option>
-                    </select>
+                            <div className="admin-modal-field">
+                                <label htmlFor="create-product-featured">Trạng thái nổi bật</label>
+                                <select
+                                    id="create-product-featured"
+                                    value={createForm.isFeatured}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, isFeatured: e.target.value }))}
+                                >
+                                    <option value="false">Normal</option>
+                                    <option value="true">HOT</option>
+                                </select>
+                            </div>
 
-                    <select
-                        value={createForm.categoryId}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, categoryId: e.target.value }))}
-                    >
-                        <option value="">-- Chọn category --</option>
-                        {categories.map((c) => (
-                            <option key={c._id} value={c._id}>{c.name}</option>
-                        ))}
-                    </select>
-                    <p className="error">{createErrors.categoryId}</p>
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-product-category">Danh mục</label>
+                                <select
+                                    id="create-product-category"
+                                    value={createForm.categoryId}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, categoryId: e.target.value }))}
+                                >
+                                    <option value="">-- Chọn category --</option>
+                                    {categories.map((c) => (
+                                        <option key={c._id} value={c._id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                {createErrors.categoryId && <p className="admin-modal-error">{createErrors.categoryId}</p>}
+                            </div>
 
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => setCreateFiles(e.target.files)}
-                    />
+                            <div className="admin-modal-field admin-modal-field-full">
+                                <label htmlFor="create-product-images">Ảnh sản phẩm (tối đa 5 ảnh)</label>
+                                <input
+                                    id="create-product-images"
+                                    type="file"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={(e) => setCreateFiles(e.target.files)}
+                                />
+                            </div>
+                        </div>
 
-                    <p style={{ color: "red" }}>{uploadError}</p>
-                    <p style={{ color: "green" }}>{uploadMessage}</p>
+                        {(uploadError || uploadMessage) && (
+                            <div className={`admin-modal-notice${uploadError ? " error" : ""}`} role="status">
+                                {uploadError || uploadMessage}
+                            </div>
+                        )}
 
-                    <div className="form-actions">
-                        <button type="submit" className="btn-save">Lưu</button>
-                        <button type="button" className="btn-cancel" onClick={() => setShowCreateForm(false)}>Hủy</button>
-                    </div>
-                </form>
+                        <div className="admin-modal-actions">
+                            <button type="button" className="admin-modal-cancel" onClick={closeCreateForm}>Hủy</button>
+                            <button type="submit" className="admin-modal-submit">Lưu sản phẩm</button>
+                        </div>
+                    </form>
+                </AdminModal>
             )}
 
             <table>

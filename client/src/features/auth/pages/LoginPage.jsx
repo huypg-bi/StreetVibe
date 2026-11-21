@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Lock, Mail } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import googleIcon from "../../../assets/img/Google.png";
+import streetVibeLogo from "../../../assets/img/logo.png";
 import "../styles/auth.css";
 
 export default function LoginPage() {
@@ -19,10 +20,13 @@ export default function LoginPage() {
         <main className="auth-screen">
             <div className="auth-shell">
                 <header className="auth-topbar">
-                    <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
-                        <span className="auth-wordmark-badge">SV</span>
-                        <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
-                    </Link>
+                    <div className="auth-brand-group">
+                        <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
+                            <img src={streetVibeLogo} alt="" className="auth-wordmark-logo" />
+                            <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
+                        </Link>
+                        <Link to="/" className="auth-back-link"><ArrowLeft size={13} /> BACK TO STORE</Link>
+                    </div>
                     <span className="auth-topbar-ref">MEMBER ACCESS // 001</span>
                 </header>
 
@@ -105,7 +109,6 @@ export default function LoginPage() {
                             <Link to="/register">CREATE ACCOUNT <span aria-hidden="true">→</span></Link>
                         </div>
 
-                        <Link to="/" className="auth-back-link"><ArrowLeft size={14} /> BACK TO STORE</Link>
                     </div>
                 </section>
             </div>

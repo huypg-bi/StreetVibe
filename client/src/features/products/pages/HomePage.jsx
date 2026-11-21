@@ -123,7 +123,7 @@ export default function HomePage() {
             </section>
 
             {/* ================= 2. TRENDING DROPS GRID (4 COLUMNS) ================= */}
-            <section className="section-dossier-header">
+            <section className="section-dossier-header trending-dossier-header">
                 <div>
                     <span className="mono-spec" style={{ color: "#d32f2f" }}>[PROTOTYPE MATRIX // 2026]</span>
                     <h2>TRENDING DROPS // CẬP NHẬT MỚI</h2>

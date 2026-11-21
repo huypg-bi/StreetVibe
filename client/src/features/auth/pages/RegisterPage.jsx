@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import streetVibeLogo from "../../../assets/img/logo.png";
 import "../styles/auth.css";
 
 export default function RegisterPage() {
@@ -24,10 +25,13 @@ export default function RegisterPage() {
         <main className="auth-screen">
             <div className="auth-shell">
                 <header className="auth-topbar">
-                    <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
-                        <span className="auth-wordmark-badge">SV</span>
-                        <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
-                    </Link>
+                    <div className="auth-brand-group">
+                        <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
+                            <img src={streetVibeLogo} alt="" className="auth-wordmark-logo" />
+                            <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
+                        </Link>
+                        <Link to="/" className="auth-back-link"><ArrowLeft size={13} /> BACK TO STORE</Link>
+                    </div>
                     <span className="auth-topbar-ref">MEMBER ACCESS // 002</span>
                 </header>
 
@@ -127,7 +131,6 @@ export default function RegisterPage() {
                             <Link to="/login">SIGN IN <span aria-hidden="true">→</span></Link>
                         </div>
 
-                        <Link to="/" className="auth-back-link"><ArrowLeft size={14} /> BACK TO STORE</Link>
                     </div>
                 </section>
             </div>

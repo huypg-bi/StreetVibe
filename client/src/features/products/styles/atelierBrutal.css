@@ -248,12 +248,17 @@
    3. TRENDING DROPS GRID (4 COLUMNS BRUTALIST)
    -------------------------------------------------------------------------- */
 .section-dossier-header {
-  padding: 28px 24px;
+  margin: 0 24px 14px;
+  padding: 22px 24px;
   background: var(--surface-white);
-  border-bottom: var(--border-black);
+  border: var(--border-black);
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+}
+
+.trending-dossier-header {
+  margin-top: 24px;
 }
 
 .section-dossier-header h2 {
@@ -272,13 +277,14 @@
 .atelier-product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background: var(--surface-black);
-  gap: 1px;
-  border-bottom: var(--border-black);
+  gap: 16px;
+  padding: 16px 24px;
+  background: transparent;
 }
 
 .atelier-product-card {
   background: var(--surface-white);
+  border: var(--border-concrete);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -393,13 +399,14 @@
 .atelier-manifesto-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: var(--border-black);
-  background: var(--surface-white);
+  gap: 16px;
+  margin: 0 24px 28px;
+  background: transparent;
 }
 
 .manifesto-craft-box {
   padding: 56px 48px;
-  border-right: var(--border-black);
+  border: var(--border-black);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -439,12 +446,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  background: var(--surface-black);
-  gap: 1px;
+  gap: 12px;
+  background: transparent;
 }
 
 .category-spec-cell {
   background: var(--surface-white);
+  border: var(--border-concrete);
   padding: 32px;
   display: flex;
   flex-direction: column;
@@ -481,15 +489,16 @@
 .atelier-dispatch-feed {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: var(--border-black);
-  background: var(--surface-black);
-  gap: 1px;
+  gap: 16px;
+  margin: 0 24px 32px;
+  background: transparent;
 }
 
 .dispatch-card {
   position: relative;
   aspect-ratio: 4/5;
   background: #111;
+  border: var(--border-black);
   overflow: hidden;
 }
 
@@ -1238,8 +1247,7 @@
     grid-template-columns: 1fr;
   }
   .manifesto-craft-box {
-    border-right: none;
-    border-bottom: var(--border-black);
+    border: var(--border-black);
   }
   .catalog-spec-layout {
     grid-template-columns: 1fr;
@@ -1268,10 +1276,33 @@
 }
 
 @media (max-width: 640px) {
+  .section-dossier-header {
+    margin-right: 14px;
+    margin-left: 14px;
+    padding: 16px;
+  }
+  .trending-dossier-header {
+    margin-top: 16px;
+  }
   .atelier-product-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .atelier-manifesto-grid {
+    gap: 12px;
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+  .manifesto-categories-box {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 12px;
   }
   .atelier-dispatch-feed {
+    gap: 12px;
+    margin-right: 14px;
+    margin-left: 14px;
     grid-template-columns: 1fr 1fr;
   }
   .footer-early-access {

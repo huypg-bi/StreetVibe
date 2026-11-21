@@ -3,7 +3,9 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
+	"streetvibe/auth-service/internal/models"
 	"streetvibe/auth-service/internal/services"
 	"streetvibe/shared/response"
 
@@ -31,6 +33,17 @@ type LoginRequest struct {
 
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type UpdateRoleRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin customer"`
+}
+
+type AdminCreateUserRequest struct {
+	Name     string `json:"name" binding:"required,min=2,max=100"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+	Role     string `json:"role" binding:"required,oneof=admin customer"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -92,7 +105,6 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 }
 
 func (h *AuthHandler) GetMe(c *gin.Context) {
-	// User ID can come from X-User-Id header (injected by API Gateway) or Auth Middleware
 	userID := c.GetString("user_id")
 	if userID == "" {
 		userID = c.GetHeader("X-User-Id")
@@ -110,4 +122,104 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Lấy thông tin thành công", user)
+}
+
+// ============================================
+// ADMIN USER MANAGEMENT HANDLERS
+// ============================================
+
+func (h *AuthHandler) GetUsers(c *gin.Context) {
+	search := c.Query("search")
+	role := c.Query("role")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	users, total, err := h.authService.GetUsers(search, role, page, limit)
+	if err != nil {
+		response.InternalError(c, "Lỗi khi lấy danh sách người dùng")
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Lấy danh sách người dùng thành công", gin.H{
+		"users": users,
+		"pagination": gin.H{
+			"total": total,
+			"page":  page,
+			"limit": limit,
+		},
+	})
+}
+
+func (h *AuthHandler) UpdateUserRole(c *gin.Context) {
+	targetUserID := c.Param("id")
+	currentUserID := c.GetString("user_id")
+	if currentUserID == "" {
+		currentUserID = c.GetHeader("X-User-Id")
+	}
+
+	var req UpdateRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Dữ liệu cập nhật quyền không hợp lệ", err.Error())
+		return
+	}
+
+	err := h.authService.UpdateUserRole(currentUserID, targetUserID, models.Role(req.Role))
+	if err != nil {
+		if errors.Is(err, services.ErrCannotModifySelf) {
+			response.BadRequest(c, "Không thể tự thay đổi quyền tài khoản của chính mình", "")
+			return
+		}
+		if errors.Is(err, services.ErrUserNotFound) {
+			response.NotFound(c, "Không tìm thấy người dùng")
+			return
+		}
+		response.InternalError(c, "Lỗi khi cập nhật quyền người dùng")
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Cập nhật quyền thành công", nil)
+}
+
+func (h *AuthHandler) DeleteUser(c *gin.Context) {
+	targetUserID := c.Param("id")
+	currentUserID := c.GetString("user_id")
+	if currentUserID == "" {
+		currentUserID = c.GetHeader("X-User-Id")
+	}
+
+	err := h.authService.DeleteUser(currentUserID, targetUserID)
+	if err != nil {
+		if errors.Is(err, services.ErrCannotModifySelf) {
+			response.BadRequest(c, "Không thể tự xóa tài khoản của chính mình", "")
+			return
+		}
+		if errors.Is(err, services.ErrUserNotFound) {
+			response.NotFound(c, "Không tìm thấy người dùng")
+			return
+		}
+		response.InternalError(c, "Lỗi khi xóa người dùng")
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Xóa người dùng thành công", nil)
+}
+
+func (h *AuthHandler) CreateUser(c *gin.Context) {
+	var req AdminCreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Dữ liệu tạo người dùng không hợp lệ", err.Error())
+		return
+	}
+
+	newUser, err := h.authService.CreateUserByAdmin(req.Name, req.Email, req.Password, models.Role(req.Role))
+	if err != nil {
+		if errors.Is(err, services.ErrUserAlreadyExists) {
+			response.Error(c, http.StatusConflict, "USER_EXISTS", "Email này đã được sử dụng")
+			return
+		}
+		response.InternalError(c, "Lỗi khi tạo người dùng")
+		return
+	}
+
+	response.Success(c, http.StatusCreated, "Tạo người dùng thành công", newUser)
 }

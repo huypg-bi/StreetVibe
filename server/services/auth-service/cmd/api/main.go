@@ -55,6 +55,16 @@ func main() {
 			v1.POST("/login", authHandler.Login)
 			v1.POST("/refresh", authHandler.Refresh)
 			v1.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetMe)
+
+			// Admin User Management Routes
+			usersAdmin := v1.Group("/users")
+			usersAdmin.Use(middleware.AdminMiddleware(cfg))
+			{
+				usersAdmin.GET("", authHandler.GetUsers)
+				usersAdmin.POST("", authHandler.CreateUser)
+				usersAdmin.PUT("/:id/role", authHandler.UpdateUserRole)
+				usersAdmin.DELETE("/:id", authHandler.DeleteUser)
+			}
 		}
 	}
 

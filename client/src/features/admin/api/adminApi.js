@@ -94,3 +94,32 @@ export async function uploadImg(img) {
 
     return res.data?.data;
 }
+
+// ============================================
+// ADMIN USER MANAGEMENT
+// ============================================
+export async function getUsers({ search = "", role = "", page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (role) params.append("role", role);
+    if (page) params.append("page", page);
+    if (limit) params.append("limit", limit);
+
+    const res = await apiClient.get(`/auth/users?${params.toString()}`);
+    return res.data?.data || { users: [], pagination: {} };
+}
+
+export async function updateUserRole(userId, role) {
+    const res = await apiClient.put(`/auth/users/${userId}/role`, { role });
+    return res.data?.data;
+}
+
+export async function deleteUser(userId) {
+    const res = await apiClient.delete(`/auth/users/${userId}`);
+    return res.data?.data;
+}
+
+export async function createUser(userData) {
+    const res = await apiClient.post("/auth/users", userData);
+    return res.data?.data;
+}

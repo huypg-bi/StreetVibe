@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrUserAlreadyExists = errors.New("user with this email already exists")
+	ErrUserAlreadyExists  = errors.New("user with this email already exists")
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrCannotModifySelf   = errors.New("cannot modify or delete your own account")
 )
 
 type AuthService interface {
@@ -22,6 +23,10 @@ type AuthService interface {
 	Login(email, password string) (*AuthResponse, error)
 	RefreshToken(refreshToken string) (string, error)
 	GetProfile(userID string) (*models.User, error)
+	GetUsers(search, role string, page, limit int) ([]models.User, int64, error)
+	UpdateUserRole(currentUserID, targetUserID string, role models.Role) error
+	DeleteUser(currentUserID, targetUserID string) error
+	CreateUserByAdmin(name, email, password string, role models.Role) (*models.User, error)
 }
 
 type AuthResponse struct {
@@ -140,4 +145,79 @@ func (s *authService) GetProfile(userID string) (*models.User, error) {
 		return nil, ErrUserNotFound
 	}
 	return user, nil
+}
+
+func (s *authService) GetUsers(search, role string, page, limit int) ([]models.User, int64, error) {
+	return s.repo.FindAll(search, role, page, limit)
+}
+
+func (s *authService) UpdateUserRole(currentUserID, targetUserID string, role models.Role) error {
+	if currentUserID == targetUserID {
+		return ErrCannotModifySelf
+	}
+
+	targetUID, err := uuid.Parse(targetUserID)
+	if err != nil {
+		return errors.New("invalid user id format")
+	}
+
+	user, err := s.repo.FindByID(targetUID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	return s.repo.UpdateRole(targetUID, role)
+}
+
+func (s *authService) DeleteUser(currentUserID, targetUserID string) error {
+	if currentUserID == targetUserID {
+		return ErrCannotModifySelf
+	}
+
+	targetUID, err := uuid.Parse(targetUserID)
+	if err != nil {
+		return errors.New("invalid user id format")
+	}
+
+	user, err := s.repo.FindByID(targetUID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	return s.repo.Delete(targetUID)
+}
+
+func (s *authService) CreateUserByAdmin(name, email, password string, role models.Role) (*models.User, error) {
+	existing, err := s.repo.FindByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, ErrUserAlreadyExists
+	}
+
+	if role != models.RoleAdmin && role != models.RoleCustomer {
+		role = models.RoleCustomer
+	}
+
+	newUser := &models.User{
+		Name:  name,
+		Email: email,
+		Role:  role,
+	}
+	if err := newUser.SetPassword(password); err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.Create(newUser); err != nil {
+		return nil, err
+	}
+
+	return newUser, nil
 }

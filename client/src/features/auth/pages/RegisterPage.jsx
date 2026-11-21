@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import userIcon from "../../../assets/img/User.png";
-import messageIcon from "../../../assets/img/Message.png";
-import passwordIcon from "../../../assets/img/Password.png";
+import "../styles/auth.css";
 
 export default function RegisterPage() {
     const { register } = useAuth();
@@ -14,76 +13,124 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (password !== confirmPassword) {
+            alert("Mật khẩu xác nhận không khớp!");
+            return;
+        }
         await register(name, email, password);
     };
 
     return (
-        <div className="auth-page">
-        <div className="register-container">
-            <div>
-                <span className="auth-brand-mark">SV</span>
-                <h3>Let's Get Started</h3>
-                <p>Create a new account</p>
+        <main className="auth-screen">
+            <div className="auth-shell">
+                <header className="auth-topbar">
+                    <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
+                        <span className="auth-wordmark-badge">SV</span>
+                        <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
+                    </Link>
+                    <span className="auth-topbar-ref">MEMBER ACCESS // 002</span>
+                </header>
+
+                <section className="auth-panel">
+                    <aside className="auth-panel-intro">
+                        <span className="auth-kicker">[ STREETVIBE // JOIN THE ARCHIVE ]</span>
+                        <div>
+                            <span className="auth-intro-index">02 — NEW MEMBERS</span>
+                            <h1>MAKE IT<br />YOURS.</h1>
+                            <p>Tạo tài khoản để lưu lại lựa chọn của bạn và nhận thông tin về những đợt phát hành mới.</p>
+                        </div>
+                        <div className="auth-intro-footer">
+                            <span>LIMITED RELEASES</span>
+                            <span>EST. 2026</span>
+                        </div>
+                    </aside>
+
+                    <div className="auth-form-panel">
+                        <div className="auth-form-heading">
+                            <span className="auth-kicker">[ ACCOUNT // CREATE ]</span>
+                            <h2>TẠO TÀI KHOẢN</h2>
+                            <p>Điền thông tin để gia nhập StreetVibe.</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="auth-form">
+                            <label className="auth-field" htmlFor="register-name">
+                                <span className="auth-field-label">FULL NAME</span>
+                                <span className="auth-input-wrap">
+                                    <User size={17} aria-hidden="true" />
+                                    <input
+                                        type="text"
+                                        id="register-name"
+                                        placeholder="Your name"
+                                        autoComplete="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <label className="auth-field" htmlFor="register-email">
+                                <span className="auth-field-label">EMAIL ADDRESS</span>
+                                <span className="auth-input-wrap">
+                                    <Mail size={17} aria-hidden="true" />
+                                    <input
+                                        type="email"
+                                        id="register-email"
+                                        placeholder="name@example.com"
+                                        autoComplete="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <label className="auth-field" htmlFor="register-password">
+                                <span className="auth-field-label">PASSWORD</span>
+                                <span className="auth-input-wrap">
+                                    <Lock size={17} aria-hidden="true" />
+                                    <input
+                                        type="password"
+                                        id="register-password"
+                                        placeholder="Create a password"
+                                        autoComplete="new-password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <label className="auth-field" htmlFor="register-confirm-password">
+                                <span className="auth-field-label">CONFIRM PASSWORD</span>
+                                <span className="auth-input-wrap">
+                                    <Lock size={17} aria-hidden="true" />
+                                    <input
+                                        type="password"
+                                        id="register-confirm-password"
+                                        placeholder="Enter your password again"
+                                        autoComplete="new-password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <button type="submit" className="auth-submit">
+                                [ CREATE YOUR ACCOUNT ]
+                            </button>
+                        </form>
+
+                        <div className="auth-form-footer">
+                            <span>ALREADY A MEMBER?</span>
+                            <Link to="/login">SIGN IN <span aria-hidden="true">→</span></Link>
+                        </div>
+
+                        <Link to="/" className="auth-back-link"><ArrowLeft size={14} /> BACK TO STORE</Link>
+                    </div>
+                </section>
             </div>
-
-            <form onSubmit={handleSubmit} id="register-form">
-                <div>
-                    <img src={userIcon} alt="user" />
-                    <input
-                        type="text"
-                        placeholder="Full Name"
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                </div>
-
-                <div>
-                    <img src={messageIcon} alt="email" />
-                    <input
-                        type="email"
-                        placeholder="Your email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <img src={passwordIcon} alt="password" />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <img src={passwordIcon} alt="password" />
-                    <input
-                        type="password"
-                        placeholder="Password Again"
-                        id="confirm-password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <button type="submit">Sign Up</button>
-            </form>
-
-            <div className="sign-in">
-                have a account?
-                <Link to="/login">Sign In</Link>
-            </div>
-
-            <Link to="/" className="back-home">← Back to Home</Link>
-        </div>
-        </div>
+        </main>
     );
 }

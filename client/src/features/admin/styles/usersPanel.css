@@ -1,0 +1,359 @@
+/* ==========================================================================
+   ATELIER BRUTAL - USERS & ROLES SPECIFICATION STYLES
+   ========================================================================== */
+
+.users-panel-container {
+  width: 100%;
+  font-family: var(--font-primary);
+}
+
+.users-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #000;
+}
+
+.users-panel-header h1 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #000;
+  margin: 0;
+}
+
+.users-panel-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-add-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-user:hover {
+  background: #fff;
+  color: #000;
+}
+
+/* Filter bar */
+.users-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.users-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+}
+
+.users-search-wrapper input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 14px 8px 36px;
+  border: 1px solid #000;
+  background: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.users-search-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+}
+
+.users-role-select {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #000;
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* User Table */
+.users-table-wrapper {
+  background: #fff;
+  border: 1px solid #000;
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.users-table th {
+  background: #000;
+  color: #fff;
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #000;
+}
+
+.users-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+
+.users-table tr:hover td {
+  background: #fbfaf6;
+}
+
+/* User Profile Cell */
+.user-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-circle {
+  width: 36px;
+  height: 36px;
+  background: #000;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  border: 1px solid #000;
+}
+
+.user-name-title {
+  font-weight: 700;
+  color: #000;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.user-email-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #777;
+}
+
+/* Badges */
+.role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #000;
+}
+
+.role-badge.admin {
+  background: #000;
+  color: #fff;
+}
+
+.role-badge.customer {
+  background: #f0f0f0;
+  color: #444;
+  border-color: #ccc;
+}
+
+/* Action Buttons */
+.users-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-toggle-role {
+  padding: 6px 10px;
+  border: 1px solid #000;
+  background: #fff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.btn-toggle-role:hover {
+  background: #000;
+  color: #fff;
+}
+
+.btn-delete-user {
+  padding: 6px 10px;
+  border: 1px solid #d32f2f;
+  background: #fff;
+  color: #d32f2f;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-user:hover {
+  background: #d32f2f;
+  color: #fff;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #fff;
+  width: 100%;
+  max-width: 480px;
+  padding: 28px;
+  border: 2px solid #000;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #000;
+  padding-bottom: 12px;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #000;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.form-field input,
+.form-field select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #000;
+  background: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-modal-cancel {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid #000;
+  background: #fff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.btn-modal-submit {
+  min-height: 38px;
+  padding: 0 18px;
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.alert-box {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #000;
+}
+
+.alert-box.success {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #166534;
+}
+
+.alert-box.error {
+  background: #fef2f2;
+  border-color: #d32f2f;
+  color: #991b1b;
+}

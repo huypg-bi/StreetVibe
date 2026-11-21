@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import contactImg from "../../assets/img/contact_img.png";
+import { Mail, Phone, MapPin, Send } from "lucide-react";
 
 export default function ContactPage() {
     return (
@@ -10,44 +10,46 @@ export default function ContactPage() {
                 <span>/ Contact</span>
             </section>
 
-            {/* ================= CONTAC-BOX ================= */}
+            {/* ================= CONTACT-BOX ================= */}
             <section className="contact-section">
                 <div className="contact-container">
-
                     <div className="contact-info-card">
-                        <img src={contactImg} alt="" className="bg-icon" />
                         <div className="info-content">
                             <h3>Get in touch</h3>
-                            <div className="info-item">
-                                <p>contact@streetvibe.com</p>
+                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <Mail size={16} color="#d7ff3f" />
+                                <p style={{ margin: 0 }}>contact@streetvibe.com</p>
                             </div>
-                            <div className="info-item">
-                                <p>+234 4556 6665 34</p>
+                            <div className="info-item" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <Phone size={16} color="#d7ff3f" />
+                                <p style={{ margin: 0 }}>+84 987 654 321</p>
                             </div>
-                            <div className="info-item">
-                                <p>20 Harvard Street, <br /> Musin, Lagos, Nigeria</p>
+                            <div className="info-item" style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                                <MapPin size={16} color="#d7ff3f" style={{ marginTop: "3px" }} />
+                                <p style={{ margin: 0 }}>StreetVibe Store, District 1, Ho Chi Minh City</p>
                             </div>
                         </div>
                     </div>
 
-                    <form className="contact-form">
+                    <form className="contact-form" onSubmit={(e) => { e.preventDefault(); alert("Cảm ơn bạn đã gửi tin nhắn!"); }}>
                         <div className="input-group">
                             <label>Full Name</label>
-                            <input type="text" placeholder="James Doe" />
+                            <input type="text" placeholder="Nguyễn Văn A" required />
                         </div>
                         <div className="input-group">
                             <label>Email</label>
-                            <input type="email" placeholder="jamesdoe@gmail.com" />
+                            <input type="email" placeholder="email@example.com" required />
                         </div>
                         <div className="input-group">
                             <label>Message</label>
-                            <textarea placeholder="Type your message here..." />
+                            <textarea placeholder="Nội dung tin nhắn..." required />
                         </div>
+                        <button type="submit" className="button button-lime" style={{ marginTop: "12px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                            <Send size={16} /> Gửi tin nhắn
+                        </button>
                     </form>
-
                 </div>
             </section>
-
         </>
     );
 }

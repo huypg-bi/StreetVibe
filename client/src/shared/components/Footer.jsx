@@ -1,55 +1,69 @@
 import { Link } from "react-router-dom";
-import facebookIcon from "../../assets/img/facebook.png";
-import twitterIcon from "../../assets/img/twitter.png";
-import westernUnionIcon from "../../assets/img/Western-union.png";
-import masterIcon from "../../assets/img/Group 19.png";
-import paypalIcon from "../../assets/img/Paypal.png";
-import visaIcon from "../../assets/img/visa-logo.jpg";
+import "../../features/products/styles/atelierBrutal.css";
 
 export default function Footer() {
     return (
-        <footer className="site-footer">
-            <div className="footer-main">
-                <div className="footer-brand">
-                    <Link to="/" className="brand-lockup">
-                        <span className="brand-mark">SV</span>
-                        <span>Street<span>Vibe</span></span>
-                    </Link>
-                    <p>Good style moves with you. Discover everyday essentials and statement pieces made for the streets.</p>
-                    <div className="social-links">
-                        <a href="https://facebook.com" aria-label="Facebook"><img src={facebookIcon} alt="" /></a>
-                        <a href="https://twitter.com" aria-label="Twitter"><img src={twitterIcon} alt="" /></a>
-                    </div>
+        <footer className="atelier-footer">
+            {/* Early Access Drop Box */}
+            <div className="footer-early-access">
+                <div>
+                    <span className="mono-spec" style={{ color: "#888" }}>[DISPATCH PROTOCOL // VIP PASS]</span>
+                    <h3 style={{ marginTop: "6px" }}>15-MINUTE EARLY DROP ACCESS</h3>
+                    <p>Nhận mã truy cập sớm vào kho lưu trữ trước mỗi đợt mở bán công khai. Số lượng giới hạn theo từng đợt sản xuất.</p>
                 </div>
-                <div className="footer-links">
-                    <div>
-                        <h3>Explore</h3>
-                        <Link to="/best-seller">New arrivals</Link>
-                        <Link to="/best-seller">Sneakers</Link>
-                        <Link to="/best-seller">Accessories</Link>
-                    </div>
-                    <div>
-                        <h3>Customer care</h3>
-                        <Link to="/contact">Contact us</Link>
-                        <Link to="/contact">Shipping &amp; returns</Link>
-                        <Link to="/contact">FAQs</Link>
-                    </div>
-                    <div>
-                        <h3>Get in touch</h3>
-                        <a href="mailto:contact@streetvibe.com">contact@streetvibe.com</a>
-                        <span>Mon–Fri, 9am–6pm</span>
+                <form className="early-access-form" onSubmit={(e) => { e.preventDefault(); alert("VIP PASS GRANTED. Kiểm tra hòm thư của bạn!"); }}>
+                    <input type="email" placeholder="ENTER YOUR EMAIL FOR VIP PASS..." required />
+                    <button type="submit" className="btn-brutal">
+                        [ĐĂNG KÝ NGAY]
+                    </button>
+                </form>
+            </div>
+
+            {/* System Columns */}
+            <div className="footer-system-grid">
+                <div className="footer-col">
+                    <h5>[BRAND PURPOSE // ARCHIVE]</h5>
+                    <p style={{ fontSize: "13px", color: "#555", lineHeight: 1.6, maxWidth: "320px" }}>
+                        STREETVIBE ATELIER nghiên cứu và chế tác thời trang đường phố kỹ thuật cao. Tôn vinh vẻ đẹp thô ráp của kết cấu bê tông, vải dệt trọng lượng nặng và phụ kiện titanium bền bỉ.
+                    </p>
+                </div>
+
+                <div className="footer-col">
+                    <h5>[OPERATIONS // LOGISTICS]</h5>
+                    <ul>
+                        <li><Link to="/best-seller">NEW RELEASES // DROP 007</Link></li>
+                        <li><Link to="/best-seller">FABRIC MATRIX &amp; GSM GUIDE</Link></li>
+                        <li><Link to="/contact">AUTHENTICITY &amp; NFC SCAN</Link></li>
+                        <li><Link to="/contact">WARRANTY // REPAIR ATELIER</Link></li>
+                    </ul>
+                </div>
+
+                <div className="footer-col">
+                    <h5>[LEGAL &amp; COMPLIANCE]</h5>
+                    <ul>
+                        <li><Link to="/contact">PRIVACY ARCHIVE</Link></li>
+                        <li><Link to="/contact">DISPATCH TERMS // COD</Link></li>
+                        <li><Link to="/contact">RETURN &amp; EXCHANGE PROTOCOL</Link></li>
+                        <li><Link to="/contact">SECURITY REPORT</Link></li>
+                    </ul>
+                </div>
+
+                <div className="footer-col">
+                    <h5>[SYS_METRICS // LIVE]</h5>
+                    <div className="footer-sys-metrics">
+                        <div>LOC: 10.7769° N, 106.7009° E</div>
+                        <div>NODE: SAIGON_HUB_V1</div>
+                        <div>SERVER: GO_GIN_MICROSERVICES</div>
+                        <div>ENCRYPTION: AES_256_GCM</div>
+                        <div>STATUS: <span style={{ color: "#16a34a", fontWeight: "700" }}>ONLINE // 99.98%</span></div>
                     </div>
                 </div>
             </div>
-            <div className="footer-bottom">
-                <p>© {new Date().getFullYear()} StreetVibe. All rights reserved.</p>
-                <div className="payment-methods">
-                    <img src={westernUnionIcon} alt="Western Union" />
-                    <img src={masterIcon} alt="Mastercard" />
-                    <img src={paypalIcon} alt="PayPal" />
-                    <img src={visaIcon} alt="Visa" />
-                </div>
-                <span>Made for moving.</span>
+
+            {/* Bottom Bar */}
+            <div className="footer-bottom-bar">
+                <span>© {new Date().getFullYear()} STREETVIBE ATELIER. ALL SPECIFICATIONS RESERVED.</span>
+                <span>DESIGNED UNDER THE ATELIER BRUTAL CODE.</span>
             </div>
         </footer>
     );

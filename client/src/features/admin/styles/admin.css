@@ -1,0 +1,338 @@
+/* ==========================================================================
+   ATELIER BRUTAL ADMIN DASHBOARD STYLES
+   Command Center for Drop Logistics, Inventory Matrix & Security Logs
+   ========================================================================== */
+
+.admin-wrapper {
+  min-height: 100vh;
+  background: var(--surface-main);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+}
+
+.admin-wrapper .admin-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 250px;
+  padding: 24px 18px;
+  background: #000000;
+  color: #ffffff;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.admin-wrapper .sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 28px;
+  border-bottom: 1px solid #222;
+}
+
+.admin-wrapper .sidebar-logo .logo-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-wrapper .sidebar-logo .logo-text {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-wrapper .nav-section-title {
+  padding: 18px 10px 8px;
+  color: #777;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.admin-wrapper .nav-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
+}
+
+.admin-wrapper .nav-item:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+  border-color: #333;
+}
+
+.admin-wrapper .nav-item.active {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.admin-wrapper .admin-main {
+  min-height: 100vh;
+  margin-left: 250px;
+  background: #f9f9f9;
+}
+
+.admin-wrapper .admin-topbar {
+  display: flex;
+  height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: var(--border-black);
+  background: #ffffff;
+}
+
+.admin-wrapper .page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #888;
+}
+
+.admin-wrapper .breadcrumb-current {
+  color: #000;
+  font-weight: 700;
+}
+
+.admin-wrapper .logout-btn {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: var(--border-black);
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-wrapper .logout-btn:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.admin-wrapper .admin-content {
+  padding: 32px;
+}
+
+/* ================= ATELIER BRUTAL DASHBOARD METRICS ================= */
+.brutal-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.brutal-kpi-card {
+  background: #ffffff;
+  border: var(--border-black);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+}
+
+.brutal-kpi-card .kpi-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+}
+
+.brutal-kpi-card .kpi-val {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 800;
+  color: #000;
+  margin: 10px 0 4px;
+}
+
+.brutal-kpi-card .kpi-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #166534;
+  font-weight: 700;
+}
+
+/* Drop Velocity & Tracker */
+.brutal-chart-section {
+  background: #ffffff;
+  border: var(--border-black);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.velocity-bar-chart {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
+  align-items: flex-end;
+  height: 160px;
+  padding: 20px 0 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.velocity-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.velocity-col .bar {
+  width: 100%;
+  background: #000;
+  transition: height 0.3s ease;
+}
+
+.velocity-col.peak .bar {
+  background: #d32f2f;
+}
+
+.velocity-col span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #888;
+}
+
+/* Two column bottom stream */
+.admin-stream-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.admin-stream-box {
+  background: #ffffff;
+  border: var(--border-black);
+  padding: 24px;
+}
+
+.stream-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 14px;
+}
+
+.stream-table th,
+.stream-table td {
+  padding: 10px 12px;
+  border-bottom: var(--border-subtle);
+  text-align: left;
+}
+
+.stream-table th {
+  background: var(--surface-dim);
+  font-size: 10px;
+  color: #777;
+  text-transform: uppercase;
+}
+
+/* General panel tables */
+.admin-wrapper .products-container,
+.admin-wrapper .categories-container {
+  background: #ffffff;
+  border: var(--border-black);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.admin-wrapper .products-container table,
+.admin-wrapper .categories-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+.admin-wrapper .products-container th,
+.admin-wrapper .categories-container th {
+  background: #000000;
+  color: #ffffff;
+  padding: 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.admin-wrapper .products-container td,
+.admin-wrapper .categories-container td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-wrapper .products-container button,
+.admin-wrapper .categories-container button {
+  padding: 8px 14px;
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.admin-wrapper .products-container button:hover,
+.admin-wrapper .categories-container button:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+@media (max-width: 1024px) {
+  .brutal-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .admin-stream-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-wrapper .admin-sidebar {
+    width: 200px;
+  }
+  .admin-wrapper .admin-main {
+    margin-left: 200px;
+  }
+}

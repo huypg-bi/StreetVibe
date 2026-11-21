@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft, Lock, Mail } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import messageIcon from "../../../assets/img/Message.png";
-import passwordIcon from "../../../assets/img/Password.png";
 import googleIcon from "../../../assets/img/Google.png";
-import facebookIcon from "../../../assets/img/Facebook1.png";
+import "../styles/auth.css";
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -17,56 +16,99 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="auth-page">
-        <div className="login-container">
-            <div className="intro">
-                <span className="auth-brand-mark">SV</span>
-                <h3>Welcome to StreetVibe</h3>
-                <p>Sign in to continue</p>
+        <main className="auth-screen">
+            <div className="auth-shell">
+                <header className="auth-topbar">
+                    <Link to="/" className="auth-wordmark" aria-label="StreetVibe home">
+                        <span className="auth-wordmark-badge">SV</span>
+                        <span>STREETVIBE<span className="auth-wordmark-slash"> / ARCHIVE</span></span>
+                    </Link>
+                    <span className="auth-topbar-ref">MEMBER ACCESS // 001</span>
+                </header>
+
+                <section className="auth-panel">
+                    <aside className="auth-panel-intro">
+                        <span className="auth-kicker">[ STREETVIBE // PRIVATE ACCESS ]</span>
+                        <div>
+                            <span className="auth-intro-index">01 — MEMBER PORTAL</span>
+                            <h1>ACCESS<br />THE ARCHIVE.</h1>
+                            <p>Đăng nhập để tiếp tục khám phá các thiết kế độc bản và quản lý đơn hàng của bạn.</p>
+                        </div>
+                        <div className="auth-intro-footer">
+                            <span>SAIGON · TOKYO</span>
+                            <span>EST. 2026</span>
+                        </div>
+                    </aside>
+
+                    <div className="auth-form-panel">
+                        <div className="auth-form-heading">
+                            <span className="auth-kicker">[ ACCOUNT // SIGN IN ]</span>
+                            <h2>ĐĂNG NHẬP</h2>
+                            <p>Nhập thông tin tài khoản để tiếp tục.</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="auth-form">
+                            <label className="auth-field" htmlFor="login-email">
+                                <span className="auth-field-label">EMAIL ADDRESS</span>
+                                <span className="auth-input-wrap">
+                                    <Mail size={17} aria-hidden="true" />
+                                    <input
+                                        type="email"
+                                        id="login-email"
+                                        placeholder="name@example.com"
+                                        autoComplete="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <label className="auth-field" htmlFor="login-password">
+                                <span className="auth-field-label">PASSWORD</span>
+                                <span className="auth-input-wrap">
+                                    <Lock size={17} aria-hidden="true" />
+                                    <input
+                                        type="password"
+                                        id="login-password"
+                                        placeholder="Enter your password"
+                                        autoComplete="current-password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </span>
+                            </label>
+
+                            <button type="submit" className="auth-submit">
+                                [ SIGN IN TO YOUR ACCOUNT ]
+                            </button>
+                        </form>
+
+                        <div className="auth-divider"><span>OR CONTINUE WITH</span></div>
+
+                        <div className="auth-socials">
+                            <button type="button" className="auth-social-button">
+                                <img src={googleIcon} alt="" />
+                                GOOGLE
+                            </button>
+                            <button type="button" className="auth-social-button">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                </svg>
+                                FACEBOOK
+                            </button>
+                        </div>
+
+                        <div className="auth-form-footer">
+                            <span>NEW TO STREETVIBE?</span>
+                            <Link to="/register">CREATE ACCOUNT <span aria-hidden="true">→</span></Link>
+                        </div>
+
+                        <Link to="/" className="auth-back-link"><ArrowLeft size={14} /> BACK TO STORE</Link>
+                    </div>
+                </section>
             </div>
-
-            <form onSubmit={handleSubmit} id="login-form">
-                <div className="email-input">
-                    <img src={messageIcon} alt="" />
-                    <input
-                        type="email"
-                        placeholder="Your email"
-                        id="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <div className="pass-input">
-                    <img src={passwordIcon} alt="" />
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        id="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <button type="submit">Sign In</button>
-            </form>
-
-            <div className="divider">OR</div>
-
-            <button type="button"><img src={googleIcon} alt="gg-login" />Login with Google</button>
-            <button type="button"><img src={facebookIcon} alt="fb-login" />Login with Facebook</button>
-
-            <a href="#">Forgot Password?</a>
-
-            <div className="register">
-                Don't have a account?
-                <Link to="/register">Register</Link>
-            </div>
-
-            <Link to="/" className="back-home">← Back to Home</Link>
-        </div>
-        </div>
+        </main>
     );
 }

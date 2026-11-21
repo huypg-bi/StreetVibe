@@ -14,6 +14,9 @@ type UserRepository interface {
 	FindByEmail(email string) (*models.User, error)
 	FindByID(id uuid.UUID) (*models.User, error)
 	Count() (int64, error)
+	FindAll(search string, role string, page, limit int) ([]models.User, int64, error)
+	UpdateRole(id uuid.UUID, role models.Role) error
+	Delete(id uuid.UUID) error
 }
 
 type userRepository struct {
@@ -56,4 +59,41 @@ func (r *userRepository) Count() (int64, error) {
 	var count int64
 	err := r.db.Model(&models.User{}).Count(&count).Error
 	return count, err
+}
+
+func (r *userRepository) FindAll(search string, role string, page, limit int) ([]models.User, int64, error) {
+	var users []models.User
+	var total int64
+	query := r.db.Model(&models.User{})
+
+	if search != "" {
+		likePattern := "%" + search + "%"
+		query = query.Where("name ILIKE ? OR email ILIKE ?", likePattern, likePattern)
+	}
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&users).Error
+	return users, total, err
+}
+
+func (r *userRepository) UpdateRole(id uuid.UUID, role models.Role) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("role", role).Error
+}
+
+func (r *userRepository) Delete(id uuid.UUID) error {
+	return r.db.Delete(&models.User{}, "id = ?", id).Error
 }

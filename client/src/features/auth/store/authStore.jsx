@@ -28,17 +28,17 @@ export function AuthProvider({ children }) {
             localStorage.setItem("token", data.token);
             setToken(data.token);
 
-            const isAdmin = data.user?.role === "admin";
-            navigate(isAdmin ? "/admin" : "/");
+            const role = data.user?.role;
+            navigate(role === "admin" ? "/admin" : role === "supplier" ? "/supplier" : "/");
         } catch (err) {
             console.error("Error caught:", err);
             alert("Error login!");
         }
     }, [navigate]);
 
-    const register = useCallback(async (name, email, password) => {
+    const register = useCallback(async (name, email, password, supplierRequest = false) => {
         try {
-            const data = await registerAPI(name, email, password);
+            const data = await registerAPI(name, email, password, supplierRequest);
 
             if (!data || !data.token) {
                 alert("Register failed!");
@@ -48,8 +48,8 @@ export function AuthProvider({ children }) {
             localStorage.setItem("token", data.token);
             setToken(data.token);
 
-            const isAdmin = data.user?.role === "admin";
-            navigate(isAdmin ? "/admin" : "/");
+            const role = data.user?.role;
+            navigate(role === "admin" ? "/admin" : role === "supplier" ? "/supplier" : "/");
         } catch (err) {
             console.error(err);
             alert("Error register!");

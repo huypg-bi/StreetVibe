@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrSupplierRequestNotFound = errors.New("pending supplier request not found")
+
 type UserRepository interface {
 	Create(user *models.User) error
 	FindByEmail(email string) (*models.User, error)
@@ -16,7 +18,9 @@ type UserRepository interface {
 	Count() (int64, error)
 	FindAll(search string, role string, page, limit int) ([]models.User, int64, error)
 	UpdateRole(id uuid.UUID, role models.Role) error
+	ApproveSupplierRequest(id uuid.UUID) error
 	Delete(id uuid.UUID) error
+	UpdateCustomerStatus(id uuid.UUID, status, note string) error
 }
 
 type userRepository struct {
@@ -94,6 +98,30 @@ func (r *userRepository) UpdateRole(id uuid.UUID, role models.Role) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Update("role", role).Error
 }
 
+func (r *userRepository) ApproveSupplierRequest(id uuid.UUID) error {
+	result := r.db.Model(&models.User{}).
+		Where("id = ? AND role = ? AND supplier_requested = ?", id, models.RoleCustomer, true).
+		Updates(map[string]interface{}{
+			"role":               models.RoleSupplier,
+			"supplier_requested": false,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrSupplierRequestNotFound
+	}
+	return nil
+}
+
 func (r *userRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&models.User{}, "id = ?", id).Error
+}
+
+func (r *userRepository) UpdateCustomerStatus(id uuid.UUID, status, note string) error {
+	updates := map[string]interface{}{"status": status}
+	if note != "" {
+		updates["admin_note"] = note
+	}
+	return r.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error
 }

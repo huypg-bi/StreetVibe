@@ -11,11 +11,15 @@ import (
 
 type ProductFilter struct {
 	CategoryID string
+	Fit        string
+	Size       string
+	Brand      string
 	IsFeatured *bool
 	MinPrice   *float64
 	MaxPrice   *float64
 	Search     string
 	Sort       string
+	InStock    *bool
 	Page       int
 	Limit      int
 }
@@ -23,6 +27,7 @@ type ProductFilter struct {
 type ProductRepository interface {
 	Create(p *models.Product) error
 	FindAll(filter ProductFilter) ([]models.Product, int64, error)
+	FindApprovedBrands() ([]string, error)
 	FindByID(id uuid.UUID) (*models.Product, error)
 	FindFeatured(limit int) ([]models.Product, error)
 	FindBestSellers(categorySlug string, limit int) ([]models.Product, error)
@@ -40,19 +45,39 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 }
 
 func (r *productRepository) Create(p *models.Product) error {
-	return r.db.Create(p).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("Colors").Create(p).Error; err != nil {
+			return err
+		}
+		if len(p.Colors) == 0 {
+			return nil
+		}
+		return tx.Model(p).Association("Colors").Replace(p.Colors)
+	})
 }
 
 func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64
 
-	query := r.db.Model(&models.Product{}).Preload("Category")
+	query := r.db.Model(&models.Product{}).Preload("Category").Preload("Colors").Where("status = ?", "APPROVED")
 
 	if f.CategoryID != "" {
 		if cid, err := uuid.Parse(f.CategoryID); err == nil {
 			query = query.Where("category_id = ?", cid)
 		}
+	}
+	if f.Fit != "" {
+		query = query.Where("LOWER(products.fit) = LOWER(?)", f.Fit)
+	}
+	if f.Size != "" {
+		query = query.Where(
+			"EXISTS (SELECT 1 FROM product_variants pv JOIN sizes s ON s.id = pv.size_id WHERE pv.product_id = products.id AND LOWER(s.name) = LOWER(?))",
+			f.Size,
+		)
+	}
+	if f.Brand != "" {
+		query = query.Where("LOWER(products.brand) = LOWER(?)", f.Brand)
 	}
 	if f.IsFeatured != nil {
 		query = query.Where("is_featured = ?", *f.IsFeatured)
@@ -62,6 +87,13 @@ func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, e
 	}
 	if f.MaxPrice != nil {
 		query = query.Where("price <= ?", *f.MaxPrice)
+	}
+	if f.InStock != nil {
+		if *f.InStock {
+			query = query.Where("stock > 0")
+		} else {
+			query = query.Where("stock <= 0")
+		}
 	}
 	if f.Search != "" {
 		query = query.Where("name ILIKE ? OR description ILIKE ?", "%"+f.Search+"%", "%"+f.Search+"%")
@@ -98,9 +130,24 @@ func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, e
 	return products, total, err
 }
 
+func (r *productRepository) FindApprovedBrands() ([]string, error) {
+	var brands []string
+	err := r.db.Model(&models.Product{}).
+		Distinct("brand").
+		Where("status = ? AND brand <> ?", "APPROVED", "").
+		Order("brand asc").
+		Pluck("brand", &brands).Error
+	return brands, err
+}
+
 func (r *productRepository) FindByID(id uuid.UUID) (*models.Product, error) {
 	var product models.Product
-	err := r.db.Preload("Category").First(&product, "id = ?", id).Error
+	err := r.db.
+		Preload("Category").
+		Preload("Colors").
+		Preload("Variants.Color").
+		Preload("Variants.Size").
+		First(&product, "id = ? AND status = ?", id, "APPROVED").Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -115,7 +162,7 @@ func (r *productRepository) FindFeatured(limit int) ([]models.Product, error) {
 	if limit <= 0 {
 		limit = 8
 	}
-	err := r.db.Preload("Category").Where("is_featured = ?", true).Order("created_at desc").Limit(limit).Find(&products).Error
+	err := r.db.Preload("Category").Preload("Colors").Where("is_featured = ? AND status = ?", true, "APPROVED").Order("created_at desc").Limit(limit).Find(&products).Error
 	return products, err
 }
 
@@ -124,16 +171,24 @@ func (r *productRepository) FindBestSellers(categorySlug string, limit int) ([]m
 	if limit <= 0 {
 		limit = 8
 	}
-	query := r.db.Model(&models.Product{}).Preload("Category")
+	query := r.db.Model(&models.Product{}).Preload("Category").Preload("Colors")
 	if categorySlug != "" && categorySlug != "all" {
 		query = query.Joins("JOIN categories ON categories.id = products.category_id").Where("categories.slug = ?", categorySlug)
 	}
-	err := query.Order("sold_count desc, created_at desc").Limit(limit).Find(&products).Error
+	err := query.Where("products.status = ?", "APPROVED").Order("sold_count desc, created_at desc").Limit(limit).Find(&products).Error
 	return products, err
 }
 
 func (r *productRepository) Update(p *models.Product) error {
-	return r.db.Save(p).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("Colors").Save(p).Error; err != nil {
+			return err
+		}
+		if p.Colors == nil {
+			return nil
+		}
+		return tx.Model(p).Association("Colors").Replace(p.Colors)
+	})
 }
 
 func (r *productRepository) PatchFlags(id uuid.UUID, isFeatured bool) error {

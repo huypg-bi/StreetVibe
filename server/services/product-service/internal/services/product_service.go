@@ -10,19 +10,23 @@ import (
 )
 
 var (
-	ErrProductNotFound = errors.New("product not found")
+	ErrProductNotFound     = errors.New("product not found")
+	ErrInvalidProductColor = errors.New("invalid product color id")
 )
 
 type ProductDTO struct {
-	Name          string  `json:"name" binding:"required"`
-	Description   string  `json:"description"`
-	Price         float64 `json:"price" binding:"required,gt=0"`
-	OriginalPrice float64 `json:"original_price"`
-	Stock         int     `json:"stock" binding:"gte=0"`
-	SoldCount     int     `json:"sold_count"`
-	IsFeatured    bool    `json:"is_featured"`
-	Image         string  `json:"image"`
-	CategoryID    string  `json:"category_id" binding:"required"`
+	Name          string   `json:"name" binding:"required"`
+	Brand         string   `json:"brand"`
+	Fit           string   `json:"fit"`
+	Description   string   `json:"description"`
+	Price         float64  `json:"price" binding:"required,gt=0"`
+	OriginalPrice float64  `json:"original_price"`
+	Stock         int      `json:"stock" binding:"gte=0"`
+	SoldCount     int      `json:"sold_count"`
+	IsFeatured    bool     `json:"is_featured"`
+	Image         string   `json:"image"`
+	CategoryID    string   `json:"category_id" binding:"required"`
+	ColorIDs      []string `json:"color_ids"`
 }
 
 type ProductPaginationResult struct {
@@ -36,6 +40,7 @@ type ProductPaginationResult struct {
 type ProductService interface {
 	CreateProduct(dto *ProductDTO) (*models.Product, error)
 	GetProducts(filter repositories.ProductFilter) (*ProductPaginationResult, error)
+	GetApprovedBrands() ([]string, error)
 	GetProductByID(id string) (*models.Product, error)
 	GetFeaturedProducts(limit int) ([]models.Product, error)
 	GetBestSellers(categorySlug string, limit int) ([]models.Product, error)
@@ -45,12 +50,29 @@ type ProductService interface {
 }
 
 type productService struct {
-	repo     repositories.ProductRepository
-	catRepo  repositories.CategoryRepository
+	repo    repositories.ProductRepository
+	catRepo repositories.CategoryRepository
 }
 
 func NewProductService(repo repositories.ProductRepository, catRepo repositories.CategoryRepository) ProductService {
 	return &productService{repo: repo, catRepo: catRepo}
+}
+
+func productColors(colorIDs []string) ([]models.Color, error) {
+	colors := make([]models.Color, 0, len(colorIDs))
+	seen := make(map[uuid.UUID]struct{}, len(colorIDs))
+	for _, colorID := range colorIDs {
+		id, err := uuid.Parse(colorID)
+		if err != nil {
+			return nil, ErrInvalidProductColor
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		colors = append(colors, models.Color{ID: id})
+	}
+	return colors, nil
 }
 
 func (s *productService) CreateProduct(dto *ProductDTO) (*models.Product, error) {
@@ -67,6 +89,11 @@ func (s *productService) CreateProduct(dto *ProductDTO) (*models.Product, error)
 		return nil, errors.New("category does not exist")
 	}
 
+	colors, err := productColors(dto.ColorIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	origPrice := dto.OriginalPrice
 	if origPrice <= 0 {
 		origPrice = dto.Price * 1.25 // Default 25% discount markup if not provided
@@ -74,6 +101,8 @@ func (s *productService) CreateProduct(dto *ProductDTO) (*models.Product, error)
 
 	product := &models.Product{
 		Name:          dto.Name,
+		Brand:         dto.Brand,
+		Fit:           dto.Fit,
 		Slug:          makeSlug(dto.Name) + "-" + uuid.New().String()[:8],
 		Description:   dto.Description,
 		Price:         dto.Price,
@@ -83,6 +112,7 @@ func (s *productService) CreateProduct(dto *ProductDTO) (*models.Product, error)
 		IsFeatured:    dto.IsFeatured,
 		Image:         dto.Image,
 		CategoryID:    catID,
+		Colors:        colors,
 		AverageRating: 5.0,
 	}
 
@@ -118,6 +148,10 @@ func (s *productService) GetProducts(f repositories.ProductFilter) (*ProductPagi
 		Limit:      limit,
 		TotalPages: totalPages,
 	}, nil
+}
+
+func (s *productService) GetApprovedBrands() ([]string, error) {
+	return s.repo.FindApprovedBrands()
 }
 
 func (s *productService) GetProductByID(idStr string) (*models.Product, error) {
@@ -162,6 +196,8 @@ func (s *productService) UpdateProduct(idStr string, dto *ProductDTO) (*models.P
 	}
 
 	product.Name = dto.Name
+	product.Brand = dto.Brand
+	product.Fit = dto.Fit
 	product.Description = dto.Description
 	product.Price = dto.Price
 	if dto.OriginalPrice > 0 {
@@ -174,6 +210,13 @@ func (s *productService) UpdateProduct(idStr string, dto *ProductDTO) (*models.P
 		product.Image = dto.Image
 	}
 	product.CategoryID = catID
+	if dto.ColorIDs != nil {
+		colors, err := productColors(dto.ColorIDs)
+		if err != nil {
+			return nil, err
+		}
+		product.Colors = colors
+	}
 
 	if err := s.repo.Update(product); err != nil {
 		return nil, err

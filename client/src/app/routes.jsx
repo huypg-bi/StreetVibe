@@ -9,6 +9,8 @@ import ContactPage from "../shared/components/ContactPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import AdminPage from "../features/admin/pages/AdminPage";
+import SupplierPage from "../features/supplier/pages/SupplierPage";
+import ProtectedRoute from "../shared/components/ProtectedRoute";
 
 export default function AppRoutes() {
     return (
@@ -25,7 +27,22 @@ export default function AppRoutes() {
             {/* Standalone pages: no shared Header/Footer, matching the original login/register/admin pages */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route
+                path="/admin/*"
+                element={
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <AdminPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/supplier/*"
+                element={
+                    <ProtectedRoute allowedRoles={["supplier"]}>
+                        <SupplierPage />
+                    </ProtectedRoute>
+                }
+            />
         </Routes>
     );
 }

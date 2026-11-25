@@ -3,8 +3,10 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import {
     getUsers,
     updateUserRole,
+    approveSupplierRequest,
     deleteUser,
     createUser,
+    updateCustomerStatus,
 } from "../api/adminApi";
 import {
     Search,
@@ -73,7 +75,11 @@ export default function UsersPanel() {
             return;
         }
 
-        const newRole = targetUser.role === "admin" ? "customer" : "admin";
+        const newRole = targetUser.role === "admin"
+            ? "customer"
+            : targetUser.role === "supplier"
+                ? "customer"
+                : "admin";
         const confirmMsg = `Bạn có chắc chắn muốn đổi quyền của "${targetUser.name}" sang [${newRole.toUpperCase()}] không?`;
         if (!window.confirm(confirmMsg)) return;
 
@@ -86,6 +92,22 @@ export default function UsersPanel() {
             loadUsers();
         } catch (err) {
             const errMsg = err.response?.data?.message || "Lỗi khi cập nhật quyền";
+            setAlert({ type: "error", message: errMsg });
+        }
+    };
+
+    const handleApproveSupplier = async (targetUser) => {
+        if (!window.confirm(`Duyệt yêu cầu Supplier của "${targetUser.name}"?`)) return;
+
+        try {
+            await approveSupplierRequest(targetUser.id);
+            setAlert({
+                type: "success",
+                message: `Đã duyệt ${targetUser.name} thành Supplier. Quyền mới có hiệu lực sau lần đăng nhập tiếp theo.`,
+            });
+            loadUsers();
+        } catch (err) {
+            const errMsg = err.response?.data?.message || "Lỗi khi duyệt yêu cầu Supplier";
             setAlert({ type: "error", message: errMsg });
         }
     };
@@ -207,6 +229,7 @@ export default function UsersPanel() {
                     <option value="">Tất cả vai trò</option>
                     <option value="admin">Quản trị viên (Admin)</option>
                     <option value="customer">Khách hàng (Customer)</option>
+                    <option value="supplier">Nhà cung cấp (Supplier)</option>
                 </select>
             </div>
 
@@ -261,7 +284,7 @@ export default function UsersPanel() {
                                         </td>
                                         <td>
                                             <span className={`role-badge ${item.role}`}>
-                                                {item.role === "admin" ? "Admin" : "Customer"}
+                                                {item.role === "admin" ? "Admin" : item.role === "supplier" ? "Supplier" : "Customer"}
                                             </span>
                                         </td>
                                         <td style={{ color: "#666", fontSize: "11px" }}>
@@ -288,6 +311,31 @@ export default function UsersPanel() {
                                                         </>
                                                     )}
                                                 </button>
+
+                                                {item.supplier_requested && item.role === "customer" && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-approve-supplier"
+                                                        onClick={() => handleApproveSupplier(item)}
+                                                    >
+                                                        <UserCheck size={12} style={{ marginRight: "4px" }} />
+                                                        DUYỆT SUPPLIER
+                                                    </button>
+                                                )}
+
+                                                {item.role === "customer" && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-toggle-role"
+                                                        onClick={() => {
+                                                            const note = window.prompt("Ghi chú nội bộ:");
+                                                            if (note !== null) updateCustomerStatus(item.id, item.status === "BLOCKED" ? "ACTIVE" : "BLOCKED", note).then(loadUsers);
+                                                        }}
+                                                    >
+                                                        <Shield size={12} style={{ marginRight: "4px" }} />
+                                                        {item.status === "BLOCKED" ? "MỞ KHÓA" : "KHÓA"}
+                                                    </button>
+                                                )}
 
                                                 <button
                                                     type="button"
@@ -374,6 +422,7 @@ export default function UsersPanel() {
                                 >
                                     <option value="customer">Khách hàng (Customer)</option>
                                     <option value="admin">Quản trị viên (Admin)</option>
+                                    <option value="supplier">Nhà cung cấp (Supplier)</option>
                                 </select>
                             </div>
 

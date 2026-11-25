@@ -1,28 +1,34 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import ProductsPanel from "../components/ProductsPanel";
 import CategoriesPanel from "../components/CategoriesPanel";
 import UsersPanel from "../components/UsersPanel";
+import MarketplaceAdminPanel from "../components/MarketplaceAdminPanel";
 import {
     LogOut,
     Users,
     Package,
     FolderTree,
     LayoutDashboard,
-    ArrowRight,
     TrendingUp,
     ShieldAlert,
     Clock,
     Activity,
     ExternalLink,
+    Tags,
 } from "lucide-react";
-import pumaImg from "../../../assets/img/puma.webp";
+import { getAdminDashboard } from "../../../shared/api/marketplaceApi";
 import "../styles/admin.css";
 
 export default function AdminPage() {
     const { logout, user } = useAuth();
-    const [activePage, setActivePage] = useState(null); // null | "products" | "categories" | "users"
+    const [activePage, setActivePage] = useState(null); // null | "products" | "categories" | "users" | "marketplace"
+    const [adminStats, setAdminStats] = useState({});
+
+    useEffect(() => {
+        getAdminDashboard().then(setAdminStats).catch(() => {});
+    }, []);
 
     const breadcrumbLabel =
         activePage === "products"
@@ -31,6 +37,10 @@ export default function AdminPage() {
             ? "CATEGORIES // TAXONOMY"
             : activePage === "users"
             ? "USERS & ACCESS RBAC"
+            : activePage === "marketplace"
+            ? "SUPPLIER OPERATIONS"
+            : activePage === "attributes"
+            ? "MARKETPLACE // ATTRIBUTES"
             : "DROP OPERATIONS DASHBOARD";
 
     // Mock live inventory matrix items
@@ -103,6 +113,24 @@ export default function AdminPage() {
                             <span>USERS &amp; ROLES</span>
                         </button>
 
+                        <button
+                            type="button"
+                            className={`nav-item${activePage === "attributes" ? " active" : ""}`}
+                            onClick={() => setActivePage("attributes")}
+                        >
+                            <Tags size={15} />
+                            <span>ATTRIBUTES</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`nav-item${activePage === "marketplace" ? " active" : ""}`}
+                            onClick={() => setActivePage("marketplace")}
+                        >
+                            <Package size={15} />
+                            <span>SUPPLIER</span>
+                        </button>
+
                         <p className="nav-section-title">[SYSTEM EXIT]</p>
                         <Link to="/" className="nav-item">
                             <ExternalLink size={15} />
@@ -160,6 +188,8 @@ export default function AdminPage() {
                     {activePage === "products" && <ProductsPanel />}
                     {activePage === "categories" && <CategoriesPanel />}
                     {activePage === "users" && <UsersPanel />}
+                    {activePage === "marketplace" && <MarketplaceAdminPanel key="supplier" mode="supplier" />}
+                    {activePage === "attributes" && <MarketplaceAdminPanel key="attributes" mode="attributes" />}
 
                     {/* ================= COMMAND CENTER DASHBOARD (WHEN activePage === null) ================= */}
                     {activePage === null && (
@@ -171,17 +201,17 @@ export default function AdminPage() {
                                         <span>TỔNG DOANH THU DROP</span>
                                         <TrendingUp size={16} color="#000" />
                                     </div>
-                                    <div className="kpi-val">482.500.000 ₫</div>
-                                    <div className="kpi-sub">+24.5% SO VỚI DROP 006</div>
+                                    <div className="kpi-val">{adminStats.pending_suborders || 0} SubOrders</div>
+                                    <div className="kpi-sub">TỔNG ĐƠN CON CHỜ XỬ LÝ</div>
                                 </div>
 
                                 <div className="brutal-kpi-card">
                                     <div className="kpi-label">
-                                        <span>TỶ LỆ BÁN SẠCH DROP 007</span>
+                                        <span>SẢN PHẨM CHỜ KIỂM DUYỆT</span>
                                         <Activity size={16} color="#000" />
                                     </div>
-                                    <div className="kpi-val">132 / 150</div>
-                                    <div className="kpi-sub">88.0% ĐÃ BÁN SẠCH (HIGH VELOCITY)</div>
+                                    <div className="kpi-val">{adminStats.pending_products || 0}</div>
+                                    <div className="kpi-sub">CẦN DUYỆT / TỪ CHỐI / ẨN</div>
                                 </div>
 
                                 <div className="brutal-kpi-card">
@@ -189,17 +219,17 @@ export default function AdminPage() {
                                         <span>ĐƠN HÀNG CHỜ ĐÓNG GÓI</span>
                                         <Clock size={16} color="#000" />
                                     </div>
-                                    <div className="kpi-val">28 ĐƠN</div>
+                                    <div className="kpi-val">{adminStats.pending_suborders || 0} ĐƠN</div>
                                     <div className="kpi-sub" style={{ color: "#d32f2f" }}>YÊU CẦU XỬ LÝ TRONG 2 GIỜ</div>
                                 </div>
 
                                 <div className="brutal-kpi-card">
                                     <div className="kpi-label">
-                                        <span>TỒN KHO THỰC TẾ</span>
+                                        <span>NHÀ CUNG CẤP CHỜ DUYỆT</span>
                                         <Package size={16} color="#000" />
                                     </div>
-                                    <div className="kpi-val">48 UNITS</div>
-                                    <div className="kpi-sub" style={{ color: "#d32f2f" }}>CẢNH BÁO: CHẠM MỨC THẤP</div>
+                                    <div className="kpi-val">{adminStats.pending_suppliers || 0} BRAND</div>
+                                    <div className="kpi-sub" style={{ color: "#d32f2f" }}>CẦN PHÊ DUYỆT TÀI KHOẢN</div>
                                 </div>
                             </div>
 

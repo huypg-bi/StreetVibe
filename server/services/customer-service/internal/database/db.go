@@ -26,7 +26,7 @@ func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	log.Println("Migrating customer_db tables...")
-	if err := db.AutoMigrate(&models.CartItem{}, &models.WishlistItem{}, &models.Review{}); err != nil {
+	if err := db.AutoMigrate(&models.CartItem{}, &models.WishlistItem{}, &models.Review{}, &models.Order{}, &models.OrderItem{}); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 

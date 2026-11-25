@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../features/auth/hooks/useAuth";
-import { Search, ShoppingBag, Shield, ArrowUpRight, User, LogOut } from "lucide-react";
+import { CART_UPDATED_EVENT, getCart } from "../../features/products/api/productsApi";
+import { Search, ShoppingBag, Shield, User, LogOut } from "lucide-react";
 import logoImg from "../../assets/img/logo.png";
 import "../../features/products/styles/atelierBrutal.css";
 
@@ -9,6 +10,26 @@ export default function Header() {
     const { token, user, logout } = useAuth();
     const location = useLocation();
     const [currency, setCurrency] = useState("VND");
+    const [cartCount, setCartCount] = useState(0);
+
+    const refreshCartCount = useCallback(async () => {
+        if (!token) return;
+        try {
+            const response = await getCart();
+            setCartCount(response.result.items.reduce((total, item) => total + item.quantity, 0));
+        } catch (error) {
+            console.error("Lỗi khi tải số lượng giỏ hàng:", error);
+        }
+    }, [token]);
+
+    useEffect(() => {
+        const timeout = setTimeout(refreshCartCount, 0);
+        window.addEventListener(CART_UPDATED_EVENT, refreshCartCount);
+        return () => {
+            clearTimeout(timeout);
+            window.removeEventListener(CART_UPDATED_EVENT, refreshCartCount);
+        };
+    }, [location.pathname, refreshCartCount]);
 
     return (
         <header className="atelier-header">
@@ -87,7 +108,7 @@ export default function Header() {
 
                     <Link to="/cart" className="atelier-action-btn" style={{ background: "#000", color: "#fff" }}>
                         <ShoppingBag size={14} />
-                        <span>CART [02]</span>
+                        <span>CART [{token ? cartCount : 0}]</span>
                     </Link>
 
                     {token ? (

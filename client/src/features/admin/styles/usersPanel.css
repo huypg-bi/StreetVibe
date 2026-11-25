@@ -198,6 +198,7 @@
 /* Action Buttons */
 .users-action-btns {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -215,6 +216,23 @@
 
 .btn-toggle-role:hover {
   background: #000;
+  color: #fff;
+}
+
+.btn-approve-supplier {
+  padding: 6px 10px;
+  border: 1px solid #166534;
+  background: #fff;
+  color: #166534;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.btn-approve-supplier:hover {
+  background: #166534;
   color: #fff;
 }
 

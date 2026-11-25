@@ -3,6 +3,188 @@
    Command Center for Drop Logistics, Inventory Matrix & Security Logs
    ========================================================================== */
 
+.marketplace-admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.marketplace-admin-error {
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
+  padding: 10px;
+}
+
+.marketplace-admin-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.marketplace-admin-tabs button,
+.marketplace-admin-form button,
+.marketplace-admin-row button {
+  border: 1px solid #000;
+  background: #fff;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.marketplace-admin-tabs button.active {
+  background: #000;
+  color: #fff;
+}
+
+.marketplace-admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.marketplace-admin-kpis article,
+.marketplace-admin-section {
+  border: 1px solid #000;
+  background: #fff;
+  padding: 16px;
+}
+
+.marketplace-admin-kpis article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.marketplace-admin-kpis strong {
+  font-size: 22px;
+}
+
+.marketplace-admin-form,
+.marketplace-admin-list,
+.marketplace-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.marketplace-admin-form input,
+.marketplace-admin-form select,
+.marketplace-admin-row input,
+.marketplace-admin-row select {
+  border: 1px solid #000;
+  border-radius: 0;
+  min-height: 36px;
+  padding: 6px 8px;
+  background: #fff;
+}
+
+.marketplace-admin-form select,
+.marketplace-admin-section-header select {
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.marketplace-color-form select {
+  min-width: 180px;
+}
+
+.marketplace-color-form input[type="color"] {
+  width: 44px;
+  padding: 3px;
+}
+
+.marketplace-admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.marketplace-admin-section-header h2 {
+  margin: 0;
+}
+
+.marketplace-admin-empty {
+  margin: 16px 0 0;
+  padding: 20px;
+  border: 1px dashed #bbb;
+  color: #777;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.marketplace-admin-list div,
+.marketplace-admin-row {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  justify-content: space-between;
+}
+
+.marketplace-admin-list div {
+  display: flex;
+  width: 100%;
+}
+
+.marketplace-color-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0 12px;
+}
+
+.marketplace-color-list > div {
+  width: auto;
+  min-width: 0;
+  gap: 8px;
+}
+
+.marketplace-color-list > div strong {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.marketplace-color-list > div button {
+  flex: 0 0 auto;
+  padding: 6px;
+}
+
+.marketplace-color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1px solid #000;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .marketplace-color-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .marketplace-color-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.marketplace-admin-row {
+  width: 100%;
+}
+
 .admin-wrapper {
   min-height: 100vh;
   background: var(--surface-main);
@@ -280,67 +462,6 @@
   overflow-x: auto;
 }
 
-.admin-wrapper .products-container table,
-.admin-wrapper .categories-container table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  margin-top: 16px;
-}
-
-.admin-wrapper .products-container th,
-.admin-wrapper .categories-container th {
-  background: #000000;
-  color: #ffffff;
-  padding: 12px;
-  font-size: 11px;
-  text-transform: uppercase;
-  text-align: left;
-}
-
-.admin-wrapper .products-container td,
-.admin-wrapper .categories-container td {
-  padding: 12px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.admin-wrapper .products-container button,
-.admin-wrapper .categories-container button {
-  padding: 8px 14px;
-  background: #000000;
-  color: #ffffff;
-  border: 1px solid #000000;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.admin-wrapper .products-container button:hover,
-.admin-wrapper .categories-container button:hover {
-  background: #ffffff;
-  color: #000000;
-}
-
-.admin-management-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: var(--border-black);
-}
-
-.admin-management-header h1 {
-  margin: 4px 0 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
-}
-
-.admin-management-eyebrow,
 .admin-modal-eyebrow {
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -348,16 +469,6 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.admin-wrapper .products-container .admin-management-header .admin-add-button,
-.admin-wrapper .categories-container .admin-management-header .admin-add-button {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16px;
-  white-space: nowrap;
 }
 
 .admin-modal-backdrop {
@@ -542,11 +653,6 @@
 }
 
 @media (max-width: 600px) {
-  .admin-management-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .admin-modal-backdrop {
     padding: 12px;
   }

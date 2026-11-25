@@ -212,6 +212,42 @@
     color: var(--surface-black);
 }
 
+.supplier-register-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: var(--border-concrete);
+    background: var(--surface-white);
+    cursor: pointer;
+}
+
+.supplier-register-option.selected {
+    border-color: var(--surface-black);
+}
+
+.supplier-register-option input {
+    flex: 0 0 auto;
+    margin: 2px 0 0;
+    accent-color: var(--surface-black);
+}
+
+.supplier-register-option span {
+    display: grid;
+    gap: 4px;
+}
+
+.supplier-register-option strong {
+    font-family: var(--font-mono);
+    font-size: 10px;
+}
+
+.supplier-register-option small {
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
 .auth-divider {
     display: flex;
     align-items: center;

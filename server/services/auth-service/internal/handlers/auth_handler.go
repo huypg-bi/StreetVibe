@@ -21,9 +21,10 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 }
 
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required,min=2,max=100"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Name              string `json:"name" binding:"required,min=2,max=100"`
+	Email             string `json:"email" binding:"required,email"`
+	Password          string `json:"password" binding:"required,min=6"`
+	SupplierRequested bool   `json:"supplier_request"`
 }
 
 type LoginRequest struct {
@@ -36,14 +37,14 @@ type RefreshRequest struct {
 }
 
 type UpdateRoleRequest struct {
-	Role string `json:"role" binding:"required,oneof=admin customer"`
+	Role string `json:"role" binding:"required,oneof=admin customer supplier"`
 }
 
 type AdminCreateUserRequest struct {
 	Name     string `json:"name" binding:"required,min=2,max=100"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
-	Role     string `json:"role" binding:"required,oneof=admin customer"`
+	Role     string `json:"role" binding:"required,oneof=admin customer supplier"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -53,7 +54,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	result, err := h.authService.Register(req.Name, req.Email, req.Password)
+	result, err := h.authService.Register(req.Name, req.Email, req.Password, req.SupplierRequested)
 	if err != nil {
 		if errors.Is(err, services.ErrUserAlreadyExists) {
 			response.Error(c, http.StatusConflict, "USER_EXISTS", "Email này đã được sử dụng")
@@ -180,6 +181,30 @@ func (h *AuthHandler) UpdateUserRole(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Cập nhật quyền thành công", nil)
 }
 
+func (h *AuthHandler) ApproveSupplierRequest(c *gin.Context) {
+	currentUserID := c.GetString("user_id")
+	if currentUserID == "" {
+		currentUserID = c.GetHeader("X-User-Id")
+	}
+
+	err := h.authService.ApproveSupplierRequest(currentUserID, c.Param("id"))
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrCannotModifySelf):
+			response.BadRequest(c, "Không thể tự duyệt yêu cầu Supplier của chính mình", "")
+		case errors.Is(err, services.ErrUserNotFound):
+			response.NotFound(c, "Không tìm thấy người dùng")
+		case errors.Is(err, services.ErrSupplierRequestNotFound):
+			response.BadRequest(c, "Người dùng không có yêu cầu Supplier đang chờ duyệt", "")
+		default:
+			response.InternalError(c, "Lỗi khi duyệt yêu cầu Supplier")
+		}
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Duyệt yêu cầu Supplier thành công", nil)
+}
+
 func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	targetUserID := c.Param("id")
 	currentUserID := c.GetString("user_id")
@@ -202,6 +227,22 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Xóa người dùng thành công", nil)
+}
+
+func (h *AuthHandler) UpdateCustomerStatus(c *gin.Context) {
+	var req struct {
+		Status string `json:"status" binding:"required"`
+		Note   string `json:"admin_note"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Dữ liệu khách hàng không hợp lệ", err.Error())
+		return
+	}
+	if err := h.authService.UpdateCustomerStatus(c.Param("id"), req.Status, req.Note); err != nil {
+		response.BadRequest(c, err.Error(), "")
+		return
+	}
+	response.Success(c, http.StatusOK, "Cập nhật trạng thái khách hàng thành công", nil)
 }
 
 func (h *AuthHandler) CreateUser(c *gin.Context) {

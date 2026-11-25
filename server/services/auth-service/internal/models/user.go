@@ -13,17 +13,21 @@ type Role string
 const (
 	RoleCustomer Role = "customer"
 	RoleAdmin    Role = "admin"
+	RoleSupplier Role = "supplier"
 )
 
 type User struct {
-	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
-	Email     string         `gorm:"type:varchar(150);uniqueIndex;not null" json:"email"`
-	Password  string         `gorm:"type:varchar(255);not null" json:"-"`
-	Role      Role           `gorm:"type:varchar(20);default:'customer'" json:"role"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID                uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	Name              string         `gorm:"type:varchar(100);not null" json:"name"`
+	Email             string         `gorm:"type:varchar(150);uniqueIndex;not null" json:"email"`
+	Password          string         `gorm:"type:varchar(255);not null" json:"-"`
+	Role              Role           `gorm:"type:varchar(20);default:'customer'" json:"role"`
+	Status            string         `gorm:"type:varchar(20);not null;default:'ACTIVE';index" json:"status"`
+	AdminNote         string         `gorm:"type:text" json:"admin_note"`
+	SupplierRequested bool           `gorm:"not null;default:false;index" json:"supplier_requested"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (u *User) SetPassword(rawPassword string) error {

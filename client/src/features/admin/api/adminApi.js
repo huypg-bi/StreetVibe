@@ -7,6 +7,8 @@ export { getProducts, getCategories } from "../../products/api/productsApi";
 export async function createProduct(product) {
     const payload = {
         name: product.name,
+        brand: product.brand,
+        fit: product.fit,
         description: product.description,
         price: Number(product.price),
         stock: Number(product.stock),
@@ -14,6 +16,7 @@ export async function createProduct(product) {
         is_featured: product.isFeatured === true || product.isFeatured === "true",
         category_id: product.categoryId,
         image: product.image,
+        color_ids: product.colorIds || [],
     };
 
     const res = await apiClient.post("/products", payload);
@@ -23,6 +26,8 @@ export async function createProduct(product) {
 export async function updateProduct(product) {
     const payload = {
         name: product.name,
+        brand: product.brand,
+        fit: product.fit,
         description: product.description,
         price: Number(product.price),
         stock: Number(product.stock),
@@ -30,6 +35,7 @@ export async function updateProduct(product) {
         is_featured: product.isFeatured === true || product.isFeatured === "true",
         category_id: product.categoryId,
         image: product.image,
+        color_ids: product.colorIds || [],
     };
 
     const id = product.id ?? product._id;
@@ -56,7 +62,7 @@ export async function patchFlagProduct(productId, flags) {
 export async function createCategory(category) {
     const payload = {
         name: category.name,
-        description: category.description,
+        parent_id: category.parentId || "",
         is_active: category.isActive === true || category.isActive === "true",
     };
     const res = await apiClient.post("/categories", payload);
@@ -67,7 +73,7 @@ export async function updateCategory(category) {
     const id = category.id ?? category._id;
     const payload = {
         name: category.name,
-        description: category.description,
+        parent_id: category.parentId || "",
         is_active: category.isActive === true || category.isActive === "true",
     };
     const res = await apiClient.put(`/categories/${id}`, payload);
@@ -111,6 +117,16 @@ export async function getUsers({ search = "", role = "", page = 1, limit = 50 } 
 
 export async function updateUserRole(userId, role) {
     const res = await apiClient.put(`/auth/users/${userId}/role`, { role });
+    return res.data?.data;
+}
+
+export async function approveSupplierRequest(userId) {
+    const res = await apiClient.put(`/auth/users/${userId}/approve-supplier`);
+    return res.data?.data;
+}
+
+export async function updateCustomerStatus(userId, status, adminNote = "") {
+    const res = await apiClient.put(`/auth/users/${userId}/status`, { status, admin_note: adminNote });
     return res.data?.data;
 }
 

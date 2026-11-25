@@ -67,6 +67,7 @@ export function normalizeProduct(p) {
         originalPrice: p.original_price ?? p.originalPrice ?? (p.price ? Number((p.price * 1.25).toFixed(2)) : 0),
         isFeatured: p.is_featured ?? p.isFeatured ?? false,
         soldCount: p.sold_count ?? p.soldCount ?? 0,
+        cartCount: p.cart_count ?? p.cartCount ?? 0,
         averageRating: p.average_rating ?? p.averageRating ?? 5,
         ratingCount: p.rating_count ?? p.ratingCount ?? 0,
         category: p.category ? normalizeCategory(p.category) : p.category,
@@ -81,6 +82,8 @@ export function normalizeCategory(c) {
     return {
         ...c,
         _id: c.id ?? c._id,
+        parentId: c.parent_id ?? c.parentId ?? null,
+        parent: c.parent ? normalizeCategory(c.parent) : c.parent,
         isActive: c.is_active ?? c.isActive ?? true,
     };
 }

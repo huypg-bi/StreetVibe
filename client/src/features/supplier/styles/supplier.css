@@ -1,0 +1,165 @@
+.supplier-wrapper {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 248px 1fr;
+    background: #f9f9f9;
+    color: #000;
+}
+
+.supplier-sidebar {
+    border-right: 1px solid #000;
+    background: #111;
+    color: #fff;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.supplier-brand {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 32px;
+}
+
+.supplier-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.supplier-nav-link {
+    color: #fff;
+    text-decoration: none;
+    border: 1px solid transparent;
+    padding: 12px;
+    font-size: 12px;
+}
+
+.supplier-nav-link.active {
+    border-color: #fff;
+    background: #fff;
+    color: #000;
+}
+
+.supplier-logout {
+    margin-top: auto;
+    border: 1px solid #d32f2f;
+    background: transparent;
+    color: #d32f2f;
+    padding: 12px;
+}
+
+.supplier-main {
+    min-width: 0;
+}
+
+.supplier-topbar {
+    height: 64px;
+    border-bottom: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+}
+
+.supplier-content {
+    margin: 24px;
+    border: 1px solid #000;
+    background: #fff;
+    padding: 32px;
+}
+
+.supplier-status {
+    color: #d32f2f;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+}
+
+.supplier-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.supplier-kpi-grid article {
+    border: 1px solid #000;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.supplier-kpi-grid span,
+.supplier-table,
+.supplier-order-row {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+}
+
+.supplier-kpi-grid strong {
+    font-size: 20px;
+}
+
+.supplier-form,
+.supplier-table,
+.supplier-order-row,
+.supplier-checkboxes {
+    margin-top: 16px;
+}
+
+.supplier-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    border: 1px solid #000;
+    padding: 16px;
+}
+
+.supplier-form small {
+    color: #666;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.supplier-form textarea,
+.supplier-form input,
+.supplier-form select,
+.supplier-content select {
+    border: 1px solid #000;
+    border-radius: 0;
+    padding: 10px;
+    background: #fff;
+}
+
+.supplier-form button,
+.supplier-content > button {
+    border: 1px solid #000;
+    background: #000;
+    color: #fff;
+    padding: 10px 12px;
+}
+
+.supplier-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.supplier-table {
+    border-top: 1px solid #000;
+}
+
+.supplier-table-row,
+.supplier-order-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+    padding: 12px 0;
+}

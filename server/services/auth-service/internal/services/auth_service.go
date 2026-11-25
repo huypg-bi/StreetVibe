@@ -12,21 +12,24 @@ import (
 )
 
 var (
-	ErrUserAlreadyExists  = errors.New("user with this email already exists")
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrUserNotFound       = errors.New("user not found")
-	ErrCannotModifySelf   = errors.New("cannot modify or delete your own account")
+	ErrUserAlreadyExists       = errors.New("user with this email already exists")
+	ErrInvalidCredentials      = errors.New("invalid email or password")
+	ErrUserNotFound            = errors.New("user not found")
+	ErrCannotModifySelf        = errors.New("cannot modify or delete your own account")
+	ErrSupplierRequestNotFound = errors.New("pending supplier request not found")
 )
 
 type AuthService interface {
-	Register(name, email, password string) (*AuthResponse, error)
+	Register(name, email, password string, supplierRequest bool) (*AuthResponse, error)
 	Login(email, password string) (*AuthResponse, error)
 	RefreshToken(refreshToken string) (string, error)
 	GetProfile(userID string) (*models.User, error)
 	GetUsers(search, role string, page, limit int) ([]models.User, int64, error)
 	UpdateUserRole(currentUserID, targetUserID string, role models.Role) error
+	ApproveSupplierRequest(currentUserID, targetUserID string) error
 	DeleteUser(currentUserID, targetUserID string) error
 	CreateUserByAdmin(name, email, password string, role models.Role) (*models.User, error)
+	UpdateCustomerStatus(targetUserID, status, note string) error
 }
 
 type AuthResponse struct {
@@ -44,7 +47,7 @@ func NewAuthService(repo repositories.UserRepository, cfg *config.Config) AuthSe
 	return &authService{repo: repo, cfg: cfg}
 }
 
-func (s *authService) Register(name, email, password string) (*AuthResponse, error) {
+func (s *authService) Register(name, email, password string, supplierRequest bool) (*AuthResponse, error) {
 	existing, err := s.repo.FindByEmail(email)
 	if err != nil {
 		return nil, err
@@ -61,9 +64,10 @@ func (s *authService) Register(name, email, password string) (*AuthResponse, err
 	}
 
 	newUser := &models.User{
-		Name:  name,
-		Email: email,
-		Role:  role,
+		Name:              name,
+		Email:             email,
+		Role:              role,
+		SupplierRequested: supplierRequest && role == models.RoleCustomer,
 	}
 	if err := newUser.SetPassword(password); err != nil {
 		return nil, err
@@ -172,6 +176,36 @@ func (s *authService) UpdateUserRole(currentUserID, targetUserID string, role mo
 	return s.repo.UpdateRole(targetUID, role)
 }
 
+func (s *authService) ApproveSupplierRequest(currentUserID, targetUserID string) error {
+	if currentUserID == targetUserID {
+		return ErrCannotModifySelf
+	}
+
+	targetUID, err := uuid.Parse(targetUserID)
+	if err != nil {
+		return errors.New("invalid user id format")
+	}
+
+	user, err := s.repo.FindByID(targetUID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if !user.SupplierRequested || user.Role != models.RoleCustomer {
+		return ErrSupplierRequestNotFound
+	}
+
+	if err := s.repo.ApproveSupplierRequest(targetUID); err != nil {
+		if errors.Is(err, repositories.ErrSupplierRequestNotFound) {
+			return ErrSupplierRequestNotFound
+		}
+		return err
+	}
+	return nil
+}
+
 func (s *authService) DeleteUser(currentUserID, targetUserID string) error {
 	if currentUserID == targetUserID {
 		return ErrCannotModifySelf
@@ -193,6 +227,17 @@ func (s *authService) DeleteUser(currentUserID, targetUserID string) error {
 	return s.repo.Delete(targetUID)
 }
 
+func (s *authService) UpdateCustomerStatus(targetUserID, status, note string) error {
+	uid, err := uuid.Parse(targetUserID)
+	if err != nil {
+		return errors.New("invalid user id format")
+	}
+	if status != "ACTIVE" && status != "BLOCKED" {
+		return errors.New("invalid customer status")
+	}
+	return s.repo.UpdateCustomerStatus(uid, status, note)
+}
+
 func (s *authService) CreateUserByAdmin(name, email, password string, role models.Role) (*models.User, error) {
 	existing, err := s.repo.FindByEmail(email)
 	if err != nil {
@@ -202,7 +247,7 @@ func (s *authService) CreateUserByAdmin(name, email, password string, role model
 		return nil, ErrUserAlreadyExists
 	}
 
-	if role != models.RoleAdmin && role != models.RoleCustomer {
+	if role != models.RoleAdmin && role != models.RoleCustomer && role != models.RoleSupplier {
 		role = models.RoleCustomer
 	}
 

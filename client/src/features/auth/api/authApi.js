@@ -21,8 +21,13 @@ export async function loginAPI(email, password) {
 /**
  * API Đăng ký
  */
-export async function registerAPI(name, email, password) {
-    const res = await apiClient.post("/auth/register", { name, email, password });
+export async function registerAPI(name, email, password, supplierRequest = false) {
+    const res = await apiClient.post("/auth/register", {
+        name,
+        email,
+        password,
+        supplier_request: supplierRequest,
+    });
     if (!res.data?.success || !res.data?.data) {
         return null;
     }

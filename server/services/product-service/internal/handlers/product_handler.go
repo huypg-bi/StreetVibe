@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -28,6 +29,11 @@ func (h *ProductHandler) GetList(c *gin.Context) {
 		val := fStr == "true"
 		isFeatured = &val
 	}
+	var inStock *bool
+	if stockFilter := c.Query("in_stock"); stockFilter != "" {
+		val := stockFilter == "true"
+		inStock = &val
+	}
 
 	var minPrice, maxPrice *float64
 	if minStr := c.Query("min_price"); minStr != "" {
@@ -43,11 +49,15 @@ func (h *ProductHandler) GetList(c *gin.Context) {
 
 	filter := repositories.ProductFilter{
 		CategoryID: c.Query("category_id"),
+		Fit:        c.Query("fit"),
+		Size:       c.Query("size"),
+		Brand:      c.Query("brand"),
 		IsFeatured: isFeatured,
 		MinPrice:   minPrice,
 		MaxPrice:   maxPrice,
 		Search:     c.Query("search"),
 		Sort:       c.Query("sort"),
+		InStock:    inStock,
 		Page:       page,
 		Limit:      limit,
 	}
@@ -58,6 +68,17 @@ func (h *ProductHandler) GetList(c *gin.Context) {
 		return
 	}
 	response.Success(c, http.StatusOK, "Lấy danh sách sản phẩm thành công", result)
+}
+
+func (h *ProductHandler) GetBrands(c *gin.Context) {
+	brands, err := h.service.GetApprovedBrands()
+	if err != nil {
+		response.InternalError(c, "Lỗi khi lấy danh sách thương hiệu")
+		return
+	}
+	response.Success(c, http.StatusOK, "Lấy danh sách thương hiệu thành công", gin.H{
+		"items": brands,
+	})
 }
 
 func (h *ProductHandler) GetDetail(c *gin.Context) {
@@ -106,6 +127,10 @@ func (h *ProductHandler) Create(c *gin.Context) {
 
 	product, err := h.service.CreateProduct(&dto)
 	if err != nil {
+		if errors.Is(err, services.ErrInvalidProductColor) {
+			response.BadRequest(c, "Mã màu không hợp lệ", err.Error())
+			return
+		}
 		response.InternalError(c, "Lỗi khi tạo sản phẩm: "+err.Error())
 		return
 	}
@@ -122,6 +147,10 @@ func (h *ProductHandler) Update(c *gin.Context) {
 
 	product, err := h.service.UpdateProduct(id, &dto)
 	if err != nil {
+		if errors.Is(err, services.ErrInvalidProductColor) {
+			response.BadRequest(c, "Mã màu không hợp lệ", err.Error())
+			return
+		}
 		response.InternalError(c, "Lỗi khi cập nhật sản phẩm: "+err.Error())
 		return
 	}

@@ -1,34 +1,34 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { useAuth } from "../../auth/hooks/useAuth";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useWishlist } from "../hooks/useWishlist";
 import { getProductDetail, addToCart } from "../api/productsApi";
 import {
     ShoppingBag,
     Heart,
-    ShieldCheck,
     Cpu,
     Sliders,
     X,
-    Check,
     Ruler,
-    Sparkles,
 } from "lucide-react";
 import pumaImg from "../../../assets/img/puma.webp";
 import "../styles/atelierBrutal.css";
 
 export default function ProductDetailPage() {
     const { id } = useParams();
-    const navigate = useNavigate();
-    const { token } = useAuth();
     const { wishlistIds, toggleWishlist } = useWishlist();
 
-    const [product, setProduct] = useState(null);
+    const [productState, setProductState] = useState({ id: null, product: null, error: "" });
+    const [cartMessage, setCartMessage] = useState("");
     const [activeThumb, setActiveThumb] = useState(0);
-    const [selectedColor, setSelectedColor] = useState("RAW CHARCOAL");
     const [selectedSize, setSelectedSize] = useState("L");
     const [quantity, setQuantity] = useState(1);
-    const [activeTab, setActiveTab] = useState("specs");
+    const [expandedDescriptionForId, setExpandedDescriptionForId] = useState(null);
+    const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
+    const descriptionRef = useRef(null);
+    const product = productState.id === id ? productState.product : null;
+    const productError = productState.id === id ? productState.error : "";
+    const loading = productState.id !== id;
+    const descriptionExpanded = expandedDescriptionForId === id;
 
     // Fit Algorithm Matrix Modal State
     const [showSizeModal, setShowSizeModal] = useState(false);
@@ -37,7 +37,6 @@ export default function ProductDetailPage() {
 
     // Dynamic Size Algorithm
     const calculateRecommendedSize = (h, w) => {
-        const bmi = w / Math.pow(h / 100, 2);
         if (h < 165 || w < 55) return { size: "S", accuracy: "97.8%", fitDesc: "Dáng Boxy Fit vừa vặn" };
         if (h < 174 || w < 65) return { size: "M", accuracy: "98.2%", fitDesc: "Dáng Boxy Fit chuẩn form" };
         if (h < 183 || w < 78) return { size: "L", accuracy: "98.8%", fitDesc: "Dáng Boxy Oversize chuẩn Lookbook" };
@@ -49,30 +48,66 @@ export default function ProductDetailPage() {
 
     useEffect(() => {
         let active = true;
-        getProductDetail(id).then((res) => {
-            if (active && res?.product) {
-                setProduct(res.product);
+        const loadProduct = async () => {
+            try {
+                const res = await getProductDetail(id);
+                if (!active) return;
+                setProductState({
+                    id,
+                    product: res?.product || null,
+                    error: res?.product ? "" : "Không tìm thấy sản phẩm này.",
+                });
+            } catch (error) {
+                console.error("Lỗi khi tải chi tiết sản phẩm:", error);
+                if (active) {
+                    setProductState({
+                        id,
+                        product: null,
+                        error: "Không thể tải sản phẩm. Vui lòng thử lại.",
+                    });
+                }
             }
-        }).catch(() => {});
+        };
+        loadProduct();
         return () => { active = false; };
     }, [id]);
 
     const handleAddToCart = async () => {
+        setCartMessage("");
         try {
-            await addToCart(id, quantity);
-            alert(`Đã thêm ${quantity} x [${product?.name || "ARCHIVAL HOODIE"}] (Size: ${selectedSize}) vào giỏ hàng!`);
-        } catch {
-            alert(`Đã đặt giữ chỗ ${quantity} x [${product?.name || "ARCHIVAL HOODIE"}] (Size: ${selectedSize}) vào giỏ hàng!`);
+            await addToCart(id, quantity, product);
+            setCartMessage(`Đã thêm ${quantity} sản phẩm vào giỏ hàng.`);
+        } catch (error) {
+            console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
+            setCartMessage(error.response?.data?.message || "Không thể thêm sản phẩm vào giỏ hàng.");
         }
     };
 
     const isWishlisted = wishlistIds.includes(String(id));
 
-    // Fallback data
-    const prodName = product?.name || "HEAVYWEIGHT BOX HOODIE // ACID WASH";
-    const prodPrice = product?.price ? Number(product.price).toLocaleString("vi-VN") + " ₫" : "1.450.000 ₫";
-    const prodDesc = product?.description || "Áo hoodie dệt từ sợi cotton chải kỹ định lượng 480 GSM. Mũ trùm hai lớp đứng form, đường may móc xích công nghiệp chịu lực và khóa zip titanium chống mòn.";
-    const prodSku = product?.sku || "SV-HD-480-BLK";
+    const prodName = product?.name || "";
+    const prodPrice = product ? `${Number(product.price).toLocaleString("vi-VN")} ₫` : "";
+    const prodDesc = product?.description || "";
+    const prodIdentifier = String(product?.id ?? product?._id ?? "");
+    const skuSuffix = prodIdentifier.replace(/-/g, "").slice(-8);
+    const skuNumber = Number.parseInt(skuSuffix, 16);
+    const prodSku = product?.sku || `${(product?.brand || product?.brand_name || "STREETVIBE").trim().toUpperCase()} - ${String(Number.isFinite(skuNumber) ? skuNumber % 1000000 : 1).padStart(6, "0")}`;
+    const productColors = Array.from(new Map(
+        [
+            ...(product?.colors || []),
+            ...(product?.variants || []).map((variant) => variant.color),
+        ]
+            .filter((color) => color?.hex_code)
+            .map((color) => [color.id ?? color.name, color])
+    ).values());
+
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => {
+            const description = descriptionRef.current;
+            setDescriptionCanExpand(Boolean(description && description.scrollHeight > description.clientHeight + 1));
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [prodDesc]);
 
     // Size chart table data
     const sizeChart = [
@@ -102,17 +137,20 @@ export default function ProductDetailPage() {
                         <span className="card-floating-badge">
                             <span className="tag-badge alert">[AUTHENTIC SPEC // NFC VERIFIED]</span>
                         </span>
-                        <img src={pumaImg} alt={prodName} />
+                        {product?.image
+                            ? <img src={product.image} alt={prodName} />
+                            : <span>{loading ? "[ĐANG TẢI SẢN PHẨM]" : "[CHƯA CÓ ẢNH SẢN PHẨM]"}</span>}
                     </div>
+                    {productError && <p className="pdp-load-error" role="alert">{productError}</p>}
 
                     <div className="pdp-gallery-thumbs">
-                        {[0, 1, 2, 3].map((idx) => (
+                        {product?.image && [0].map((idx) => (
                             <div
                                 key={idx}
                                 className={`pdp-thumb-item ${activeThumb === idx ? "active" : ""}`}
                                 onClick={() => setActiveThumb(idx)}
                             >
-                                <img src={pumaImg} alt="Thumbnail" />
+                                <img src={product.image} alt={`${prodName} thumbnail`} />
                             </div>
                         ))}
                     </div>
@@ -126,7 +164,7 @@ export default function ProductDetailPage() {
 
                 {/* Column Right: Technical Specs & Acquisition Action */}
                 <div className="pdp-spec-column">
-                    <div>
+                    <div className="pdp-product-info">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span className="mono-spec" style={{ color: "#d32f2f" }}>[EDITION: 007 // AVAILABLE]</span>
                             <span className="mono-spec">SKU: {prodSku}</span>
@@ -140,32 +178,51 @@ export default function ProductDetailPage() {
                             </div>
                         </div>
 
-                        <p style={{ fontSize: "14px", color: "#555", lineHeight: 1.6, margin: "20px 0" }}>
-                            {prodDesc}
-                        </p>
+                        <div className={`pdp-description${descriptionExpanded ? " expanded" : ""}`}>
+                            <p ref={descriptionRef}>{prodDesc}</p>
+                            {!descriptionExpanded && descriptionCanExpand && (
+                                <button
+                                    type="button"
+                                    className="pdp-description-more"
+                                    onClick={() => setExpandedDescriptionForId(id)}
+                                >
+                                    Xem thêm
+                                </button>
+                            )}
+                            {descriptionExpanded && (
+                                <button
+                                    type="button"
+                                    className="pdp-description-more"
+                                    onClick={() => setExpandedDescriptionForId(null)}
+                                >
+                                    Thu gọn
+                                </button>
+                            )}
+                        </div>
 
                         {/* Color Selector */}
-                        <div style={{ marginBottom: "20px" }}>
-                            <div className="mono-spec" style={{ marginBottom: "8px", fontWeight: "700" }}>
-                                SHADE: <span style={{ color: "#000" }}>{selectedColor}</span>
-                            </div>
-                            <div style={{ display: "flex", gap: "8px" }}>
-                                {["RAW CHARCOAL", "CONCRETE ASH", "DESERT DUST"].map(color => (
-                                    <button
-                                        key={color}
-                                        type="button"
-                                        className={`filter-btn-item ${selectedColor === color ? "active" : ""}`}
-                                        style={{ padding: "8px 12px" }}
-                                        onClick={() => setSelectedColor(color)}
-                                    >
-                                        {color}
-                                    </button>
-                                ))}
-                            </div>
+                        <div className="pdp-shade-row">
+                            <span className="mono-spec">SHADE:</span>
+                            {productColors.length > 0 ? (
+                                <div className="pdp-color-swatches">
+                                    {productColors.map((color) => (
+                                        <span
+                                            key={color.id ?? color.name}
+                                            className="pdp-color-swatch"
+                                            style={{ backgroundColor: color.hex_code }}
+                                            title={color.name}
+                                            role="img"
+                                            aria-label={color.name}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <span className="mono-spec pdp-no-color">NONE</span>
+                            )}
                         </div>
 
                         {/* Size Selector with Modal Trigger */}
-                        <div style={{ marginBottom: "24px" }}>
+                        <div style={{ marginBottom: "8px" }}>
                             <div className="pdp-size-header-row">
                                 <span className="mono-spec" style={{ fontWeight: "700" }}>KÍCH CỠ // SIZE</span>
                                 <button
@@ -192,7 +249,7 @@ export default function ProductDetailPage() {
                         </div>
 
                         {/* Quantity Stepper & Add to Cart */}
-                        <div style={{ display: "flex", gap: "12px", alignItems: "stretch", marginBottom: "24px" }}>
+                        <div style={{ display: "flex", gap: "12px", alignItems: "stretch", marginBottom: "8px" }}>
                             <div className="qty-stepper-box">
                                 <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</button>
                                 <span>{quantity}</span>
@@ -204,9 +261,10 @@ export default function ProductDetailPage() {
                                 className="btn-brutal"
                                 style={{ flex: 1, padding: "16px" }}
                                 onClick={handleAddToCart}
+                                disabled={!product || loading}
                             >
                                 <ShoppingBag size={16} />
-                                [THÊM VÀO GIỎ HÀNG // ĐẶT GIỮ HÀNG]
+                                [THÊM VÀO GIỎ HÀNG]
                             </button>
 
                             <button
@@ -219,6 +277,7 @@ export default function ProductDetailPage() {
                                 <Heart size={18} fill={isWishlisted ? "#d32f2f" : "none"} color={isWishlisted ? "#d32f2f" : "#000"} />
                             </button>
                         </div>
+                        {cartMessage && <p className="pdp-cart-message" role="status">{cartMessage}</p>}
                     </div>
 
                     {/* Authenticity RFID & Warranty Card */}
@@ -380,7 +439,7 @@ export default function ProductDetailPage() {
                             </div>
 
                             {/* Action apply */}
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "var(--border-subtle)", paddingTop: "16px" }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "var(--border-subtle)", paddingTop: "10px" }}>
                                 <button
                                     type="button"
                                     className="btn-brutal-outline"

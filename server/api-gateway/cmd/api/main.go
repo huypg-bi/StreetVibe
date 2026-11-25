@@ -48,7 +48,7 @@ func main() {
 	// 3. Health Check
 	r.GET("/health", func(c *gin.Context) {
 		response.Success(c, http.StatusOK, "API Gateway is running!", gin.H{
-			"status":   "ok",
+			"status": "ok",
 			"services": gin.H{
 				"auth_service":     cfg.AuthServiceURL,
 				"product_service":  cfg.ProductServiceURL,
@@ -108,9 +108,28 @@ func main() {
 			customerProxy.Handle(c)
 		})
 
+		v1.Any("/orders", func(c *gin.Context) {
+			customerProxy.Handle(c)
+		})
+		v1.Any("/orders/*any", func(c *gin.Context) {
+			customerProxy.Handle(c)
+		})
+
 		// Media routes (/api/v1/media/*)
 		v1.Any("/media/*any", func(c *gin.Context) {
 			mediaProxy.Handle(c)
+		})
+
+		// Marketplace routes (Suppliers, variants, attributes, moderation, payouts)
+		v1.Any("/marketplace", func(c *gin.Context) {
+			productProxy.Handle(c)
+		})
+		v1.Any("/marketplace/*any", func(c *gin.Context) {
+			if strings.Contains(c.Request.URL.Path, "/marketplace/internal/") {
+				response.Forbidden(c, "Endpoint nội bộ không được truy cập qua API Gateway")
+				return
+			}
+			productProxy.Handle(c)
 		})
 	}
 

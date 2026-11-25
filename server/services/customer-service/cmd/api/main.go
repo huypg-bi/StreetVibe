@@ -28,6 +28,7 @@ func main() {
 	var cartHandler *handlers.CartHandler
 	var wishlistHandler *handlers.WishlistHandler
 	var reviewHandler *handlers.ReviewHandler
+	var orderHandler *handlers.OrderHandler
 
 	if db != nil {
 		cartRepo := repositories.NewCartRepository(db)
@@ -38,9 +39,10 @@ func main() {
 		wishlistService := services.NewWishlistService(wishlistRepo)
 		reviewService := services.NewReviewService(reviewRepo)
 
-		cartHandler = handlers.NewCartHandler(cartService)
+		cartHandler = handlers.NewCartHandler(cartService, cfg.ProductServiceURL, cfg.InternalServiceToken)
 		wishlistHandler = handlers.NewWishlistHandler(wishlistService)
 		reviewHandler = handlers.NewReviewHandler(reviewService)
+		orderHandler = handlers.NewOrderHandler(db, cfg.ProductServiceURL, cfg.InternalServiceToken)
 	}
 
 	// Router
@@ -88,6 +90,15 @@ func main() {
 			if reviewHandler != nil {
 				reviewsGroup.GET("", reviewHandler.GetProductReviews)
 				reviewsGroup.POST("", middleware.AuthMiddleware(cfg), reviewHandler.AddOrUpdateReview)
+			}
+
+			orderGroup := v1.Group("/orders")
+			orderGroup.Use(middleware.AuthMiddleware(cfg))
+			if orderHandler != nil {
+				orderGroup.POST("/checkout", orderHandler.Checkout)
+				orderGroup.GET("/my", orderHandler.GetMyOrders)
+				orderGroup.GET("/admin", orderHandler.AdminListOrders)
+				orderGroup.PUT("/admin/:id", orderHandler.AdminUpdateOrder)
 			}
 		}
 	}

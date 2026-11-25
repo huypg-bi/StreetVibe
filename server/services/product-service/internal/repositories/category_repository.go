@@ -14,6 +14,7 @@ type CategoryRepository interface {
 	FindAll(onlyActive bool) ([]models.Category, error)
 	FindByID(id uuid.UUID) (*models.Category, error)
 	FindBySlug(slug string) (*models.Category, error)
+	HasChildren(id uuid.UUID) (bool, error)
 	Update(cat *models.Category) error
 	Delete(id uuid.UUID) error
 }
@@ -32,7 +33,7 @@ func (r *categoryRepository) Create(cat *models.Category) error {
 
 func (r *categoryRepository) FindAll(onlyActive bool) ([]models.Category, error) {
 	var categories []models.Category
-	query := r.db.Order("name asc")
+	query := r.db.Preload("Parent").Order("name asc")
 	if onlyActive {
 		query = query.Where("is_active = ?", true)
 	}
@@ -62,6 +63,12 @@ func (r *categoryRepository) FindBySlug(slug string) (*models.Category, error) {
 		return nil, err
 	}
 	return &cat, nil
+}
+
+func (r *categoryRepository) HasChildren(id uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Category{}).Where("parent_id = ?", id).Count(&count).Error
+	return count > 0, err
 }
 
 func (r *categoryRepository) Update(cat *models.Category) error {

@@ -11,6 +11,7 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [supplierRequest, setSupplierRequest] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -18,7 +19,7 @@ export default function RegisterPage() {
             alert("Mật khẩu xác nhận không khớp!");
             return;
         }
-        await register(name, email, password);
+        await register(name, email, password, supplierRequest);
     };
 
     return (
@@ -118,6 +119,18 @@ export default function RegisterPage() {
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required
                                     />
+                                </span>
+                            </label>
+
+                            <label className={`supplier-register-option${supplierRequest ? " selected" : ""}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={supplierRequest}
+                                    onChange={(event) => setSupplierRequest(event.target.checked)}
+                                />
+                                <span>
+                                    <strong>ĐĂNG KÝ VỚI TƯ CÁCH NHÀ CUNG CẤP (SUPPLIER)</strong>
+                                    <small>Tài khoản vẫn hoạt động như thành viên trong thời gian chờ Admin duyệt.</small>
                                 </span>
                             </label>
 

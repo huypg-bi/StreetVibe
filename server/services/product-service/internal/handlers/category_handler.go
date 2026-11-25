@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"streetvibe/product-service/internal/services"
@@ -20,7 +21,23 @@ func NewCategoryHandler(service services.CategoryService) *CategoryHandler {
 type CreateCategoryRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
+	ParentID    string `json:"parent_id"`
 	IsActive    bool   `json:"is_active"`
+}
+
+func respondCategoryError(c *gin.Context, err error, action string) {
+	switch {
+	case errors.Is(err, services.ErrCategoryNotFound):
+		response.NotFound(c, "Không tìm thấy danh mục")
+	case errors.Is(err, services.ErrInvalidCategoryParent):
+		response.BadRequest(c, "Danh mục cha không hợp lệ", err.Error())
+	case errors.Is(err, services.ErrCategoryHasSubcategories):
+		response.BadRequest(c, "Hãy chuyển hoặc xóa danh mục con trước khi xóa danh mục cha", err.Error())
+	case errors.Is(err, services.ErrCategoryGroupProtected):
+		response.BadRequest(c, "Ba nhóm cha Apparel, Footwear và Accessories là cố định", err.Error())
+	default:
+		response.InternalError(c, action+": "+err.Error())
+	}
 }
 
 func (h *CategoryHandler) GetList(c *gin.Context) {
@@ -50,9 +67,9 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 		return
 	}
 
-	cat, err := h.service.CreateCategory(req.Name, req.Description, req.IsActive)
+	cat, err := h.service.CreateCategory(req.Name, req.Description, req.ParentID, req.IsActive)
 	if err != nil {
-		response.InternalError(c, "Lỗi khi tạo category: "+err.Error())
+		respondCategoryError(c, err, "Lỗi khi tạo category")
 		return
 	}
 	response.Success(c, http.StatusCreated, "Tạo category thành công", cat)
@@ -66,9 +83,9 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		return
 	}
 
-	cat, err := h.service.UpdateCategory(id, req.Name, req.Description, req.IsActive)
+	cat, err := h.service.UpdateCategory(id, req.Name, req.Description, req.ParentID, req.IsActive)
 	if err != nil {
-		response.InternalError(c, "Lỗi khi cập nhật category: "+err.Error())
+		respondCategoryError(c, err, "Lỗi khi cập nhật category")
 		return
 	}
 	response.Success(c, http.StatusOK, "Cập nhật category thành công", cat)
@@ -77,7 +94,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 func (h *CategoryHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.service.DeleteCategory(id); err != nil {
-		response.InternalError(c, "Lỗi khi xóa category: "+err.Error())
+		respondCategoryError(c, err, "Lỗi khi xóa category")
 		return
 	}
 	response.Success(c, http.StatusOK, "Xóa category thành công", nil)

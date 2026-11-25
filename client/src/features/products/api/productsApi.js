@@ -9,6 +9,18 @@ export async function getProducts(params = {}) {
     return Array.isArray(items) ? items.map(normalizeProduct) : [];
 }
 
+export async function getBrands() {
+    const res = await apiClient.get("/products/brands");
+    const brands = res.data?.data?.items || [];
+    return Array.isArray(brands) ? brands : [];
+}
+
+export async function getTrendingProducts(limit = 8) {
+    const res = await apiClient.get("/products/trending", { params: { limit } });
+    const items = res.data?.data?.items || [];
+    return items.map(normalizeProduct);
+}
+
 export async function getFeatured(limit = 8) {
     const res = await apiClient.get("/products/featured", { params: { limit } });
     const items = res.data?.data?.items || [];
@@ -94,24 +106,44 @@ export async function addOrUpdateReview(productId, rating, comment) {
 // ============================================
 // CART API
 // ============================================
+export const CART_UPDATED_EVENT = "streetvibe:cart-updated";
+
 export async function getCart() {
     const res = await apiClient.get("/cart");
     const items = res.data?.data?.items || [];
+    const hydratedItems = await Promise.all(items.map(async (item) => {
+        let product = normalizeProduct(item.product);
+        const needsProductData = !product?.name || !Number(product.price) || !product.image;
+        if (needsProductData) {
+            const productId = product?._id ?? item.product_id;
+            if (!productId) {
+                throw new Error("Cart item is missing its product ID");
+            }
+            const productResponse = await apiClient.get(`/products/${productId}`);
+            const latestProduct = productResponse.data?.data;
+            if (!latestProduct) {
+                throw new Error(`Product ${productId} could not be loaded`);
+            }
+            product = normalizeProduct({ ...item.product, ...latestProduct });
+        }
+        return { ...item, product };
+    }));
     return {
         result: {
-            items: items.map((it) => ({
-                ...it,
-                product: normalizeProduct(it.product),
-            })),
+            items: hydratedItems,
         },
     };
 }
 
-export async function addToCart(productId, quantity) {
+export async function addToCart(productId, quantity, product) {
     const res = await apiClient.post("/cart/items", {
         product_id: productId,
         quantity: Number(quantity),
+        product_name: product?.name || "",
+        product_price: Number(product?.price || 0),
+        product_image: product?.image || "",
     });
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
     const items = res.data?.data?.items || [];
     return {
         result: {
@@ -127,6 +159,7 @@ export async function updateCartQuantity(productId, quantity) {
     const res = await apiClient.put(`/cart/items/${productId}`, {
         quantity: Number(quantity),
     });
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
     const items = res.data?.data?.items || [];
     return {
         result: {
@@ -140,6 +173,7 @@ export async function updateCartQuantity(productId, quantity) {
 
 export async function removeCartItem(productId) {
     const res = await apiClient.delete(`/cart/items/${productId}`);
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
     const items = res.data?.data?.items || [];
     return {
         result: {

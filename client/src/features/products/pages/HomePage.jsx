@@ -1,59 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, ShieldCheck, Cpu, Sliders, Layers } from "lucide-react";
-import { getProducts } from "../api/productsApi";
+import { ArrowRight } from "lucide-react";
+import { getTrendingProducts } from "../api/productsApi";
+import AtelierProductCard from "../components/AtelierProductCard";
 import bannerVideo from "../../../assets/video/banner.mp4";
 import pumaImg from "../../../assets/img/puma.webp";
 import "../styles/atelierBrutal.css";
 
 export default function HomePage() {
-    const [products, setProducts] = useState([]);
+    const [trendingDrops, setTrendingDrops] = useState([]);
+    const [trendingError, setTrendingError] = useState("");
+    const [trendingLoading, setTrendingLoading] = useState(true);
 
     useEffect(() => {
-        getProducts().then((res) => {
-            if (Array.isArray(res)) setProducts(res);
-        });
+        let active = true;
+        getTrendingProducts(4)
+            .then((items) => {
+                if (active) setTrendingDrops(items);
+            })
+            .catch(() => {
+                if (active) setTrendingError("Không thể tải sản phẩm trending. Vui lòng thử lại sau.");
+            })
+            .finally(() => { if (active) setTrendingLoading(false); });
+        return () => { active = false; };
     }, []);
-
-    // 4 sample trending drops with full industrial brutalist metadata
-    const trendingDrops = [
-        {
-            sku: "SV-AT01-480G",
-            name: "HEAVY HOODIE // ACID WASH",
-            gsm: "480 GSM COTTON",
-            stockTag: "CÒN 03 CHIẾC",
-            price: "1.450.000 ₫",
-            edition: "ED_001",
-            image: pumaImg,
-        },
-        {
-            sku: "SV-CR04-TTC",
-            name: "TACTICAL CARGO // TITANIUM HARDWARE",
-            gsm: "380 GSM RIPSTOP",
-            stockTag: "HOT DROP",
-            price: "1.850.000 ₫",
-            edition: "ED_002",
-            image: pumaImg,
-        },
-        {
-            sku: "SV-BT09-520G",
-            name: "BOXY TEE // HEAVYWEIGHT SLUB",
-            gsm: "320 GSM COMBED",
-            stockTag: "CÒN 05 CHIẾC",
-            price: "790.000 ₫",
-            edition: "ED_003",
-            image: pumaImg,
-        },
-        {
-            sku: "SV-NK03-RFID",
-            name: "CYBER SNEAKER // NFC CHIP VERIFIED",
-            gsm: "ARMOR GRADE NYLON",
-            stockTag: "LOW STOCK",
-            price: "2.950.000 ₫",
-            edition: "ED_004",
-            image: pumaImg,
-        },
-    ];
 
     return (
         <main className="atelier-homepage">
@@ -125,45 +95,22 @@ export default function HomePage() {
             {/* ================= 2. TRENDING DROPS GRID (4 COLUMNS) ================= */}
             <section className="section-dossier-header trending-dossier-header">
                 <div>
-                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[PROTOTYPE MATRIX // 2026]</span>
+                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[TRENDING // LIVE PRODUCT DATA]</span>
                     <h2>TRENDING DROPS // CẬP NHẬT MỚI</h2>
                 </div>
                 <div className="dossier-ref">
-                    <span>REF: SPEC_FILTER_MATRIX // 04 UNITS ON DISPLAY</span>
+                    <span>RANKED BY CART ADDS + PURCHASES</span>
                 </div>
             </section>
 
             <section className="atelier-product-grid">
-                {trendingDrops.map((drop, idx) => (
-                    <article className="atelier-product-card" key={drop.sku}>
-                        <div className="card-top-spec">
-                            <span>[{drop.sku}]</span>
-                            <span>{drop.edition}</span>
-                        </div>
-
-                        <div className="card-image-wrapper">
-                            <span className="card-floating-badge">
-                                <span className="tag-badge alert">[{drop.stockTag}]</span>
-                            </span>
-                            <img src={drop.image} alt={drop.name} />
-                        </div>
-
-                        <div className="card-info-bottom">
-                            <h3 className="card-title">{drop.name}</h3>
-                            <div className="card-meta-row">
-                                <span>{drop.gsm}</span>
-                                <span className="card-price">{drop.price}</span>
-                            </div>
-                        </div>
-
-                        <div className="card-action-bar">
-                            <Link to="/best-seller" className="btn-card-add">
-                                [XEM CHI TIẾT KỸ THUẬT &bull; ĐẶT GIỮ HÀNG]
-                            </Link>
-                        </div>
-                    </article>
-                ))}
+                {trendingDrops.map((product) => <AtelierProductCard key={product.id} product={product} />)}
             </section>
+            {trendingError && <p className="trending-load-message error">{trendingError}</p>}
+            {trendingLoading && <p className="trending-load-message">Đang tải sản phẩm trending...</p>}
+            {!trendingLoading && !trendingError && trendingDrops.length === 0 && (
+                <p className="trending-load-message">Chưa có sản phẩm trending để hiển thị.</p>
+            )}
 
             {/* ================= 3. CATALOG CATEGORIZATION & ATELIER MANIFESTO ================= */}
             <section className="atelier-manifesto-grid">

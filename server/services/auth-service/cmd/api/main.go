@@ -42,7 +42,7 @@ func main() {
 			status = "db_disconnected"
 		}
 		response.Success(c, http.StatusOK, "Auth Service Health Check", gin.H{
-			"status": status,
+			"status":  status,
 			"service": "auth-service",
 		})
 	})
@@ -63,6 +63,8 @@ func main() {
 				usersAdmin.GET("", authHandler.GetUsers)
 				usersAdmin.POST("", authHandler.CreateUser)
 				usersAdmin.PUT("/:id/role", authHandler.UpdateUserRole)
+				usersAdmin.PUT("/:id/approve-supplier", authHandler.ApproveSupplierRequest)
+				usersAdmin.PUT("/:id/status", authHandler.UpdateCustomerStatus)
 				usersAdmin.DELETE("/:id", authHandler.DeleteUser)
 			}
 		}

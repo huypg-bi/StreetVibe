@@ -1,280 +1,204 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, ShieldCheck, QrCode, CreditCard, Banknote, Trash2, ArrowRight } from "lucide-react";
-import pumaImg from "../../../assets/img/puma.webp";
+import { ArrowRight, RefreshCw, Trash2 } from "lucide-react";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { getCart, removeCartItem, updateCartQuantity } from "../api/productsApi";
 import "../styles/atelierBrutal.css";
 
 export default function CartPage() {
-    // 15:00 Hold Countdown
-    const [timeLeft, setTimeLeft] = useState(15 * 60);
-    const [voucherCode, setVoucherCode] = useState("");
-    const [discountApplied, setDiscountApplied] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState("VIETQR");
+    const { user, token } = useAuth();
+    const [cartItems, setCartItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [pendingItemIds, setPendingItemIds] = useState([]);
+    const [recipient, setRecipient] = useState({});
 
-    // Sample items in reservation tray
-    const [cartItems, setCartItems] = useState([
-        {
-            id: 1,
-            name: "HEAVY HOODIE // ACID WASH",
-            sku: "SV-HD-480-BLK",
-            size: "L",
-            price: 1450000,
-            quantity: 1,
-            image: pumaImg,
-        },
-        {
-            id: 2,
-            name: "TACTICAL CARGO // TITANIUM",
-            sku: "SV-CG-380-GRY",
-            size: "L",
-            price: 1850000,
-            quantity: 1,
-            image: pumaImg,
-        },
-    ]);
+    const loadCart = useCallback(async () => {
+        if (!token) {
+            setCartItems([]);
+            setError("");
+            setLoading(false);
+            return;
+        }
+        try {
+            const response = await getCart();
+            setCartItems(response.result.items);
+            setError("");
+        } catch (loadError) {
+            console.error("Lỗi khi tải giỏ hàng:", loadError);
+            setError("Không thể tải giỏ hàng. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
+    }, [token]);
 
-    // Timer tick
     useEffect(() => {
-        const timer = setInterval(() => {
-            setTimeLeft(prev => Math.max(0, prev - 1));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
+        const timeout = setTimeout(loadCart, 0);
+        return () => clearTimeout(timeout);
+    }, [loadCart]);
 
-    const formatTimer = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    const refreshCart = () => {
+        setLoading(true);
+        loadCart();
     };
 
-    const updateQty = (id, delta) => {
-        setCartItems(items =>
-            items.map(item => {
-                if (item.id === id) {
-                    const newQty = Math.max(1, item.quantity + delta);
-                    return { ...item, quantity: newQty };
-                }
-                return item;
-            })
-        );
-    };
+    const updateItems = async (item, quantity) => {
+        const productId = item.product?._id;
+        if (!productId || pendingItemIds.includes(item.id)) return;
 
-    const removeItem = (id) => {
-        setCartItems(items => items.filter(item => item.id !== id));
-    };
-
-    const subtotal = cartItems.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
-    const discount = discountApplied ? subtotal * 0.1 : 0;
-    const shipping = subtotal > 1000000 ? 0 : 35000;
-    const grandTotal = subtotal - discount + shipping;
-
-    const handleApplyVoucher = (e) => {
-        e.preventDefault();
-        if (voucherCode.trim().toUpperCase() === "DROPPASS" || voucherCode.trim().toUpperCase() === "VIP10") {
-            setDiscountApplied(true);
-            alert("MÃ VIP DROP PASS HỢP LỆ! ĐÃ GIẢM 10% VÀO ĐƠN HÀNG.");
-        } else {
-            alert("MÃ VOUCHER KHÔNG HỢP LỆ HOẶC ĐÃ HẾT LƯỢT TRUY CẬP SỚM.");
+        setPendingItemIds((ids) => [...ids, item.id]);
+        try {
+            const response = quantity === 0
+                ? await removeCartItem(productId)
+                : await updateCartQuantity(productId, quantity);
+            setCartItems(response.result.items);
+            setError("");
+        } catch (updateError) {
+            console.error("Lỗi khi cập nhật giỏ hàng:", updateError);
+            setError("Không thể cập nhật giỏ hàng. Vui lòng thử lại.");
+        } finally {
+            setPendingItemIds((ids) => ids.filter((id) => id !== item.id));
         }
     };
 
-    const handleCheckoutSubmit = (e) => {
-        e.preventDefault();
-        alert(`ĐẶT HÀNG THÀNH CÔNG!\nTổng thanh toán: ${grandTotal.toLocaleString("vi-VN")} ₫ qua [${paymentMethod}].\nHệ thống StreetVibe Logistics sẽ xử lý đóng gói và cấp mã theo dõi trong 2 giờ.`);
+    const subtotal = cartItems.reduce(
+        (total, item) => total + Number(item.product?.price || 0) * item.quantity,
+        0
+    );
+
+    const handleCheckoutSubmit = (event) => {
+        event.preventDefault();
     };
 
     return (
         <main className="atelier-cart-page">
-            {/* Header */}
             <div className="catalog-header-bar">
                 <div>
-                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[RESERVATION PROTOCOL // 2026]</span>
-                    <h1>GIỎ HÀNG &amp; THANH TOÁN TỐI GIẢN // CHECKOUT</h1>
-                </div>
-                <div className="mono-spec">
-                    ENCRYPTION: 256-BIT SSL PROTECTED
+                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[ CART // ACCOUNT SYNC ]</span>
+                    <h1>GIỎ HÀNG &amp; THANH TOÁN</h1>
                 </div>
             </div>
 
-            {/* All-in-One 2-Column Grid */}
             <div className="atelier-checkout-grid">
-                {/* Column Left: Reservation Tray */}
                 <div className="reservation-tray-col">
-                    {/* Hold timer alert */}
-                    <div className="hold-countdown-bar">
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <Clock size={16} />
-                            <span>THỜI GIAN GIỮ SUẤT MUA DROP: {formatTimer(timeLeft)}</span>
-                        </div>
-                        <span className="mono-spec">[ĐANG KHÓA KHO]</span>
-                    </div>
-
-                    {/* Cart Items list */}
-                    <div>
-                        <div className="mono-spec" style={{ marginBottom: "12px", color: "var(--text-muted)" }}>
-                            DANH SÁCH MÓN ĐỒ ĐANG GIỮ [{cartItems.length}]
-                        </div>
-
-                        {cartItems.map(item => (
-                            <div className="cart-item-row" key={item.id}>
-                                <div className="cart-item-thumb">
-                                    <img src={item.image} alt={item.name} />
-                                </div>
-                                <div className="cart-item-desc">
-                                    <h4>{item.name}</h4>
-                                    <p>SKU: {item.sku} &bull; SIZE: {item.size}</p>
-                                    <strong style={{ fontFamily: "var(--font-mono)", fontSize: "13px", marginTop: "4px", display: "block" }}>
-                                        {item.price.toLocaleString("vi-VN")} ₫
-                                    </strong>
-                                </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                    <div className="qty-stepper-box">
-                                        <button type="button" onClick={() => updateQty(item.id, -1)}>-</button>
-                                        <span>{item.quantity}</span>
-                                        <button type="button" onClick={() => updateQty(item.id, 1)}>+</button>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeItem(item.id)}
-                                        style={{ color: "#888", cursor: "pointer" }}
-                                        title="Xóa món này"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Voucher / VIP Drop Pass Input */}
-                    <form onSubmit={handleApplyVoucher} style={{ display: "flex", gap: "0" }}>
-                        <input
-                            type="text"
-                            placeholder="MÃ VOUCHER VIP DROP PASS (VD: DROPPASS)..."
-                            value={voucherCode}
-                            onChange={(e) => setVoucherCode(e.target.value)}
-                            style={{ flex: 1, borderRight: "none" }}
-                        />
-                        <button type="submit" className="btn-brutal" style={{ padding: "0 20px" }}>
-                            [ÁP DỤNG]
+                    <div className="cart-list-heading">
+                        <span className="mono-spec">SẢN PHẨM TRONG GIỎ [{cartItems.length}]</span>
+                        <button
+                            type="button"
+                            className="cart-refresh-button"
+                            onClick={refreshCart}
+                            disabled={loading}
+                            aria-label="Tải lại giỏ hàng"
+                        >
+                            <RefreshCw size={15} className={loading ? "cart-spin" : ""} />
                         </button>
-                    </form>
+                    </div>
 
-                    {/* Cost Summary Breakdown */}
-                    <div style={{ background: "var(--surface-dim)", border: "var(--border-subtle)", padding: "20px", display: "flex", flexDirection: "column", gap: "10px", fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>TỔNG TIỀN MÓN ĐỒ</span>
-                            <span>{subtotal.toLocaleString("vi-VN")} ₫</span>
+                    {error && <div className="cart-message error" role="alert">{error}</div>}
+
+                    {!token ? (
+                        <div className="cart-empty-state">
+                            <p>Đăng nhập để xem giỏ hàng được lưu cho tài khoản của bạn.</p>
+                            <Link to="/login" className="btn-brutal">[ĐĂNG NHẬP]</Link>
                         </div>
-                        {discountApplied && (
-                            <div style={{ display: "flex", justifyContent: "space-between", color: "#166534" }}>
-                                <span>ƯU ĐÃI VIP DROP PASS (-10%)</span>
-                                <span>-{discount.toLocaleString("vi-VN")} ₫</span>
-                            </div>
-                        )}
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span>PHÍ VẬN CHUYỂN BẢO HIỂM</span>
-                            <span>{shipping === 0 ? "MIỄN PHÍ [TRÊN 1 TRIỆU]" : shipping.toLocaleString("vi-VN") + " ₫"}</span>
+                    ) : loading && cartItems.length === 0 ? (
+                        <div className="cart-empty-state">Đang tải giỏ hàng...</div>
+                    ) : cartItems.length === 0 ? (
+                        <div className="cart-empty-state">
+                            <p>Giỏ hàng của bạn đang trống.</p>
+                            <Link to="/best-seller" className="btn-brutal">[TIẾP TỤC MUA SẮM]</Link>
                         </div>
-                        <div style={{ borderTop: "var(--border-black)", paddingTop: "12px", marginTop: "4px", display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: "800" }}>
-                            <span>TỔNG CỘNG THANH TOÁN</span>
-                            <span>{grandTotal.toLocaleString("vi-VN")} ₫</span>
-                        </div>
+                    ) : (
+                        cartItems.map((item) => {
+                            const product = item.product || {};
+                            const busy = pendingItemIds.includes(item.id);
+                            return (
+                                <div className={`cart-item-row${busy ? " is-updating" : ""}`} key={item.id}>
+                                    <Link
+                                        to={`/product/${product._id}`}
+                                        className="cart-item-thumb"
+                                        aria-label={`Xem ${product.name || "sản phẩm"}`}
+                                    >
+                                        {product.image
+                                            ? <img src={product.image} alt={product.name || "Sản phẩm"} />
+                                            : <span className="cart-image-placeholder">NO IMAGE</span>}
+                                    </Link>
+                                    <div className="cart-item-desc">
+                                        <h4>{product.name || "Sản phẩm không có tên"}</h4>
+                                        <strong>
+                                            {Number(product.price || 0).toLocaleString("vi-VN")} ₫
+                                        </strong>
+                                    </div>
+                                    <div className="cart-item-controls">
+                                        <div className="qty-stepper-box">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItems(item, Math.max(1, item.quantity - 1))}
+                                                disabled={busy || item.quantity <= 1}
+                                                aria-label="Giảm số lượng"
+                                            >-</button>
+                                            <span>{item.quantity}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItems(item, item.quantity + 1)}
+                                                disabled={busy}
+                                                aria-label="Tăng số lượng"
+                                            >+</button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateItems(item, 0)}
+                                            disabled={busy}
+                                            className="cart-remove-button"
+                                            title="Xóa sản phẩm"
+                                            aria-label={`Xóa ${product.name || "sản phẩm"} khỏi giỏ`}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+
+                    <div className="cart-total-summary">
+                        <div><span>TẠM TÍNH</span><span>{subtotal.toLocaleString("vi-VN")} ₫</span></div>
+                        <div className="cart-grand-total"><span>TỔNG CỘNG</span><span>{subtotal.toLocaleString("vi-VN")} ₫</span></div>
+                        <p>Phí vận chuyển và ưu đãi sẽ được xác nhận khi hoàn tất thông tin đơn hàng.</p>
                     </div>
                 </div>
 
-                {/* Column Right: Recipient Specs & Payment Engine */}
                 <form className="checkout-payment-col" onSubmit={handleCheckoutSubmit}>
-                    <div>
-                        <div className="mono-spec" style={{ marginBottom: "12px", fontWeight: "700" }}>
-                            [01 // THÔNG TIN GIAO HÀNG &amp; NGƯỜI NHẬN]
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                            <input type="text" placeholder="HỌ VÀ TÊN NGƯỜI NHẬN..." required defaultValue="NGUYỄN VĂN AN" />
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                                <input type="tel" placeholder="SỐ ĐIỆN THOẠI..." required defaultValue="0987654321" />
-                                <input type="email" placeholder="EMAIL NHẬN MÃ THEO DÕI..." required defaultValue="user@streetvibe.com" />
-                            </div>
-                            <input type="text" placeholder="ĐỊA CHỈ NHẬN HÀNG (SỐ NHÀ, ĐƯỜNG, PHƯỜNG/XÃ)..." required defaultValue="128 ĐỒNG KHỞI, PHƯỜNG BẾN NGHÉ, QUẬN 1" />
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                                <input type="text" placeholder="TỈNH / THÀNH PHỐ..." required defaultValue="TP. HỒ CHÍ MINH" />
-                                <input type="text" placeholder="GHI CHÚ GIAO HÀNG (TÙY CHỌN)..." />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="mono-spec" style={{ marginBottom: "12px", fontWeight: "700" }}>
-                            [02 // PHƯƠNG THỨC THANH TOÁN AN TOÀN]
-                        </div>
-                        <div className="payment-method-selector">
-                            <div
-                                className={`payment-method-tile ${paymentMethod === "VIETQR" ? "selected" : ""}`}
-                                onClick={() => setPaymentMethod("VIETQR")}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <QrCode size={16} />
-                                    <strong>VIETQR PRO</strong>
-                                </div>
-                                <span style={{ fontSize: "11px", opacity: 0.8 }}>Quét mã QR tự động xác thực</span>
-                            </div>
-
-                            <div
-                                className={`payment-method-tile ${paymentMethod === "MOMO" ? "selected" : ""}`}
-                                onClick={() => setPaymentMethod("MOMO")}
-                            >
-                                <strong>VÍ MOMO</strong>
-                                <span style={{ fontSize: "11px", opacity: 0.8 }}>Thanh toán qua app MoMo</span>
-                            </div>
-
-                            <div
-                                className={`payment-method-tile ${paymentMethod === "STRIPE" ? "selected" : ""}`}
-                                onClick={() => setPaymentMethod("STRIPE")}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <CreditCard size={16} />
-                                    <strong>THẺ QUỐC TẾ</strong>
-                                </div>
-                                <span style={{ fontSize: "11px", opacity: 0.8 }}>Visa, Mastercard, JCB</span>
-                            </div>
-
-                            <div
-                                className={`payment-method-tile ${paymentMethod === "COD" ? "selected" : ""}`}
-                                onClick={() => setPaymentMethod("COD")}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <Banknote size={16} />
-                                    <strong>COD</strong>
-                                </div>
-                                <span style={{ fontSize: "11px", opacity: 0.8 }}>Thanh toán khi nhận hàng</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* VietQR Live Preview Box */}
-                    {paymentMethod === "VIETQR" && (
-                        <div className="vietqr-box">
-                            <div className="mono-spec" style={{ color: "#d32f2f", fontWeight: "700" }}>
-                                [MÃ VIETQR TỰ ĐỘNG KHỞI TẠO THEO ĐƠN HÀNG]
-                            </div>
-                            <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=STREETVIBE_ORDER_AMOUNT_${grandTotal}`}
-                                alt="VietQR Code"
+                    <section className="cart-recipient-section">
+                        <div className="mono-spec cart-section-heading">[01 // THÔNG TIN TÀI KHOẢN]</div>
+                        <div className="cart-recipient-fields">
+                            <input
+                                type="text"
+                                placeholder="HỌ VÀ TÊN"
+                                value={recipient.name !== undefined ? recipient.name : user?.name || ""}
+                                onChange={(event) => setRecipient((value) => ({ ...value, name: event.target.value }))}
                             />
-                            <div className="mono-spec" style={{ fontSize: "11px" }}>
-                                NGÂN HÀNG: MB BANK &bull; STK: 88889999STREETVIBE<br />
-                                SỐ TIỀN: <strong>{grandTotal.toLocaleString("vi-VN")} ₫</strong> &bull; NỘI DUNG: <strong>SV_ORDER_{timeLeft}</strong>
-                            </div>
+                            <input
+                                type="email"
+                                placeholder="EMAIL"
+                                value={recipient.email !== undefined ? recipient.email : user?.email || ""}
+                                onChange={(event) => setRecipient((value) => ({ ...value, email: event.target.value }))}
+                            />
+                            <input type="tel" placeholder="SỐ ĐIỆN THOẠI" />
+                            <input type="text" placeholder="ĐỊA CHỈ NHẬN HÀNG" />
                         </div>
-                    )}
+                        {!user && <p className="cart-account-note">Đăng nhập để hiển thị thông tin tài khoản của bạn.</p>}
+                    </section>
 
-                    <button
-                        type="submit"
-                        className="btn-brutal"
-                        style={{ padding: "18px", fontSize: "15px", marginTop: "12px" }}
-                    >
-                        [TIẾN HÀNH THANH TOÁN &bull; {grandTotal.toLocaleString("vi-VN")} ₫] <ArrowRight size={18} />
-                    </button>
+                    <section className="cart-recipient-section">
+                        <div className="mono-spec cart-section-heading">[02 // THANH TOÁN]</div>
+                        <p className="cart-account-note">
+                            Chức năng đặt hàng chưa khả dụng: dữ liệu giỏ hàng hiện chưa có biến thể và nhà cung cấp cần thiết cho API checkout.
+                        </p>
+                        <button type="submit" className="btn-brutal cart-checkout-button" disabled>
+                            [TIẾN HÀNH THANH TOÁN &bull; {subtotal.toLocaleString("vi-VN")} ₫] <ArrowRight size={18} />
+                        </button>
+                    </section>
                 </form>
             </div>
         </main>

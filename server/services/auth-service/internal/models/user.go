@@ -25,6 +25,13 @@ type User struct {
 	Status            string         `gorm:"type:varchar(20);not null;default:'ACTIVE';index" json:"status"`
 	AdminNote         string         `gorm:"type:text" json:"admin_note"`
 	SupplierRequested bool           `gorm:"not null;default:false;index" json:"supplier_requested"`
+	AvatarURL         string         `gorm:"type:varchar(500)" json:"avatar_url"`
+	Interests         []string       `gorm:"serializer:json;type:jsonb" json:"interests"`
+	FavoriteBrands    []string       `gorm:"serializer:json;type:jsonb" json:"favorite_brands"`
+	HeightCm          float64        `gorm:"type:decimal(5,2);default:0" json:"height_cm"`
+	WeightKg          float64        `gorm:"type:decimal(5,2);default:0" json:"weight_kg"`
+	Gender            string         `gorm:"type:varchar(20)" json:"gender"`
+	BMI               float64        `gorm:"type:decimal(5,2);default:0" json:"bmi"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`

@@ -198,8 +198,8 @@
     min-height: 44px;
     margin-top: 4px;
     border: 1px solid var(--surface-black);
-    background: var(--surface-black);
-    color: var(--text-inverse);
+    background: var(--surface-white);
+    color: var(--surface-black);
     font-family: var(--font-mono);
     font-size: 12px;
     font-weight: 700;
@@ -208,8 +208,8 @@
 }
 
 .auth-submit:hover {
-    background: var(--surface-white);
-    color: var(--surface-black);
+  background: var(--surface-black);
+  color: var(--text-inverse);
 }
 
 .supplier-register-option {

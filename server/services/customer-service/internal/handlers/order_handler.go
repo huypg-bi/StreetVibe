@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -24,7 +25,13 @@ func NewOrderHandler(db *gorm.DB, productServiceURL, internalServiceToken string
 	return &OrderHandler{db: db, productServiceURL: productServiceURL, internalServiceToken: internalServiceToken}
 }
 
+// checkoutItem chỉ gồm lựa chọn của khách. Giá, tên và nhà cung cấp do Product Service xác nhận.
 type checkoutItem struct {
+	VariantID string `json:"variant_id" binding:"required,uuid"`
+	Quantity  int    `json:"quantity" binding:"required,min=1,max=1000"`
+}
+
+type reservedItem struct {
 	ProductID   string  `json:"product_id"`
 	SupplierID  string  `json:"supplier_id"`
 	VariantID   string  `json:"variant_id"`
@@ -36,6 +43,43 @@ type checkoutItem struct {
 	UnitPrice   float64 `json:"unit_price"`
 }
 
+// reserve giữ kho ở Product Service. status khác 0 là mã trả cho khách khi lỗi.
+func (h *OrderHandler) reserve(orderID uuid.UUID, items []checkoutItem) ([]reservedItem, int, string) {
+	const unreachable = "Không thể đồng bộ tồn kho và SubOrder"
+	payload, err := json.Marshal(map[string]interface{}{"order_id": orderID.String(), "items": items})
+	if err != nil {
+		return nil, http.StatusBadGateway, unreachable
+	}
+	request, err := http.NewRequest(http.MethodPost, h.productServiceURL+"/api/v1/marketplace/internal/checkout", bytes.NewReader(payload))
+	if err != nil {
+		return nil, http.StatusBadGateway, unreachable
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Internal-Service-Token", h.internalServiceToken)
+	client := &http.Client{Timeout: 10 * time.Second}
+	res, err := client.Do(request)
+	if err != nil {
+		return nil, http.StatusBadGateway, unreachable
+	}
+	defer res.Body.Close()
+	var body struct {
+		Data struct {
+			Items []reservedItem `json:"items"`
+		} `json:"data"`
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	decodeErr := json.NewDecoder(res.Body).Decode(&body)
+	switch {
+	case res.StatusCode == http.StatusBadRequest && body.Error.Message != "":
+		return nil, http.StatusBadRequest, body.Error.Message
+	case res.StatusCode >= 400 || decodeErr != nil || len(body.Data.Items) != len(items):
+		return nil, http.StatusBadGateway, unreachable
+	}
+	return body.Data.Items, 0, ""
+}
+
 func (h *OrderHandler) Checkout(c *gin.Context) {
 	userID, err := uuid.Parse(c.GetString("user_id"))
 	if err != nil {
@@ -43,19 +87,30 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 		return
 	}
 	var req struct {
-		ShippingAddress string         `json:"shipping_address"`
-		Items           []checkoutItem `json:"items" binding:"required,min=1"`
+		ShippingAddress string         `json:"shipping_address" binding:"max=500"`
+		Items           []checkoutItem `json:"items" binding:"required,min=1,max=100,dive"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Dữ liệu thanh toán không hợp lệ", err.Error())
 		return
 	}
 	order := models.Order{UserID: userID, PaymentStatus: "UNPAID", Status: "PENDING", ShippingAddress: req.ShippingAddress}
-	err = h.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&order).Error; err != nil {
-			return err
+	if err := h.db.Create(&order).Error; err != nil {
+		response.InternalError(c, "Không thể tạo đơn hàng")
+		return
+	}
+	reserved, status, message := h.reserve(order.ID, req.Items)
+	if status != 0 {
+		h.db.Delete(&models.Order{}, "id = ?", order.ID)
+		code := "BAD_REQUEST"
+		if status == http.StatusBadGateway {
+			code = "SERVICE_UNAVAILABLE"
 		}
-		for _, item := range req.Items {
+		response.Error(c, status, code, message)
+		return
+	}
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range reserved {
 			productID, _ := uuid.Parse(item.ProductID)
 			supplierID, _ := uuid.Parse(item.SupplierID)
 			variantID, _ := uuid.Parse(item.VariantID)
@@ -73,44 +128,10 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 		return tx.Save(&order).Error
 	})
 	if err != nil {
+		// Kho đã trừ ở Product Service: ghi lại để đối soát thủ công
+		log.Printf("Đơn %s đã giữ kho nhưng không lưu được: %v", order.ID, err)
 		response.InternalError(c, "Không thể tạo đơn hàng")
 		return
-	}
-	reserveItems := make([]map[string]interface{}, 0, len(req.Items))
-	for _, item := range req.Items {
-		reserveItems = append(reserveItems, map[string]interface{}{
-			"variant_id":   item.VariantID,
-			"supplier_id":  item.SupplierID,
-			"quantity":     item.Quantity,
-			"unit_price":   item.UnitPrice,
-			"product_name": item.ProductName,
-			"sku":          item.SKU,
-			"color_name":   item.ColorName,
-			"size_name":    item.SizeName,
-		})
-	}
-	payload, _ := json.Marshal(map[string]interface{}{"order_id": order.ID.String(), "items": reserveItems})
-	checkoutRequest, requestErr := http.NewRequest(http.MethodPost, h.productServiceURL+"/api/v1/marketplace/internal/checkout", bytes.NewReader(payload))
-	if requestErr != nil {
-		h.db.Delete(&models.Order{}, "id = ?", order.ID)
-		response.Error(c, http.StatusBadGateway, "SERVICE_UNAVAILABLE", "Không thể đồng bộ tồn kho và SubOrder")
-		return
-	}
-	checkoutRequest.Header.Set("Content-Type", "application/json")
-	checkoutRequest.Header.Set("X-Internal-Service-Token", h.internalServiceToken)
-	client := &http.Client{Timeout: 10 * time.Second}
-	res, reserveErr := client.Do(checkoutRequest)
-	if reserveErr != nil {
-		h.db.Delete(&models.Order{}, "id = ?", order.ID)
-		response.Error(c, http.StatusBadGateway, "SERVICE_UNAVAILABLE", "Không thể đồng bộ tồn kho và SubOrder")
-		return
-	} else {
-		defer res.Body.Close()
-		if res.StatusCode >= 400 {
-			h.db.Delete(&models.Order{}, "id = ?", order.ID)
-			response.BadRequest(c, "Không đủ tồn kho hoặc SubOrder không thể tạo", "")
-			return
-		}
 	}
 	h.db.Preload("OrderItems").First(&order, "id = ?", order.ID)
 	response.Success(c, http.StatusCreated, "Tạo đơn hàng thành công", order)

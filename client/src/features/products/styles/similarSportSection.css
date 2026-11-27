@@ -1,0 +1,9 @@
+/* Khối sản phẩm cùng môn thể thao ở trang chi tiết, dùng lại lưới và tiêu đề của atelierBrutal.css */
+.similar-sport-section {
+  padding: 32px 0 24px;
+  border-bottom: var(--border-black);
+}
+
+.similar-sport-section .similar-sport-tag {
+  color: #d32f2f;
+}

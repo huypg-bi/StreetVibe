@@ -1,0 +1,70 @@
+/* Khung, header, bộ lọc và bảng dùng chung style với productsPanel.css */
+
+.inventory-panel .inventory-kpis {
+  margin-bottom: 20px;
+}
+
+.inventory-panel .inventory-filters {
+  flex-wrap: wrap;
+}
+
+.inventory-panel .inventory-supplier-filter {
+  min-width: 220px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  font-size: 13px;
+}
+
+.inventory-name-column { width: 28%; }
+.inventory-supplier-column { width: 14%; }
+.inventory-category-column { width: 14%; }
+.inventory-stock-column { width: 12%; }
+.inventory-sold-column { width: 9%; }
+.inventory-status-column { width: 13%; }
+.inventory-detail-column { width: 10%; }
+
+.admin-wrapper .inventory-panel .products-table td:nth-child(3) {
+  white-space: normal;
+}
+
+.inventory-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inventory-product > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.inventory-product-thumb {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid #ddd;
+  object-fit: cover;
+}
+
+.inventory-product-sport {
+  color: #666;
+  font-size: 11px;
+}
+
+/* Modal chi tiết được portal ra document.body nên không nằm trong .inventory-panel */
+.inventory-detail-summary {
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.inventory-detail-table.stream-table {
+  margin-top: 0;
+}
+
+.inventory-detail-empty {
+  color: #777;
+  font-size: 12px;
+}

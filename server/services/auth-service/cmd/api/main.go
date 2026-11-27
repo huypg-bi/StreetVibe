@@ -10,6 +10,7 @@ import (
 	"streetvibe/auth-service/internal/middleware"
 	"streetvibe/auth-service/internal/repositories"
 	"streetvibe/auth-service/internal/services"
+	"streetvibe/shared/identity"
 	"streetvibe/shared/response"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,8 @@ func main() {
 
 	// Router
 	r := gin.Default()
+	// Phải đứng trước mọi route: không tin header danh tính do bên ngoài gửi
+	r.Use(identity.Middleware(cfg.JWTSecret))
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -55,6 +58,9 @@ func main() {
 			v1.POST("/login", authHandler.Login)
 			v1.POST("/refresh", authHandler.Refresh)
 			v1.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetMe)
+			v1.PUT("/me", middleware.AuthMiddleware(cfg), authHandler.UpdateMe)
+			v1.PUT("/me/password", middleware.AuthMiddleware(cfg), authHandler.UpdateMyPassword)
+			v1.PUT("/me/supplier-request", middleware.AuthMiddleware(cfg), authHandler.RequestSupplier)
 
 			// Admin User Management Routes
 			usersAdmin := v1.Group("/users")

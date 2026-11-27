@@ -37,6 +37,11 @@ func main() {
 		log.Fatalf("Khởi tạo Media proxy thất bại: %v", err)
 	}
 
+	aiProxy, err := proxy.NewGatewayProxy(cfg.AIServiceURL)
+	if err != nil {
+		log.Fatalf("Khởi tạo AI proxy thất bại: %v", err)
+	}
+
 	r := gin.Default()
 
 	// 1. CORS Middleware (Cho phép React Frontend gọi API)
@@ -54,6 +59,7 @@ func main() {
 				"product_service":  cfg.ProductServiceURL,
 				"customer_service": cfg.CustomerServiceURL,
 				"media_service":    cfg.MediaServiceURL,
+				"ai_service":       cfg.AIServiceURL,
 			},
 		})
 	})
@@ -77,6 +83,21 @@ func main() {
 		})
 		v1.Any("/categories/*any", func(c *gin.Context) {
 			productProxy.Handle(c)
+		})
+
+		// Outfit: ghép bộ cần dữ liệu sản phẩm; lượt và phản hồi thuộc AI Service
+		v1.Any("/outfits/*any", func(c *gin.Context) {
+			switch c.Param("any") {
+			case "/quota", "/feedback":
+				aiProxy.Handle(c)
+			default:
+				productProxy.Handle(c)
+			}
+		})
+
+		// Trang Quản lý AI (/api/v1/ai/*)
+		v1.Any("/ai/*any", func(c *gin.Context) {
+			aiProxy.Handle(c)
 		})
 
 		// Products & Reviews routes

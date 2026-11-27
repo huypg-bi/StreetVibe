@@ -11,10 +11,11 @@ import (
 
 type CartRepository interface {
 	FindByUser(userID uuid.UUID) ([]models.CartItem, error)
-	FindItem(userID, productID uuid.UUID) (*models.CartItem, error)
+	FindByID(userID, itemID uuid.UUID) (*models.CartItem, error)
+	FindByVariant(userID, productID, variantID uuid.UUID) (*models.CartItem, error)
 	Save(item *models.CartItem) error
-	UpdateQuantity(userID, productID uuid.UUID, quantity int) error
-	DeleteItem(userID, productID uuid.UUID) error
+	UpdateQuantity(userID, itemID uuid.UUID, quantity int) error
+	DeleteItem(userID, itemID uuid.UUID) error
 	Clear(userID uuid.UUID) error
 }
 
@@ -32,9 +33,9 @@ func (r *cartRepository) FindByUser(userID uuid.UUID) ([]models.CartItem, error)
 	return items, err
 }
 
-func (r *cartRepository) FindItem(userID, productID uuid.UUID) (*models.CartItem, error) {
+func (r *cartRepository) findOne(query string, args ...interface{}) (*models.CartItem, error) {
 	var item models.CartItem
-	err := r.db.Where("user_id = ? AND product_id = ?", userID, productID).First(&item).Error
+	err := r.db.Where(query, args...).First(&item).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -44,18 +45,26 @@ func (r *cartRepository) FindItem(userID, productID uuid.UUID) (*models.CartItem
 	return &item, nil
 }
 
+func (r *cartRepository) FindByID(userID, itemID uuid.UUID) (*models.CartItem, error) {
+	return r.findOne("user_id = ? AND id = ?", userID, itemID)
+}
+
+func (r *cartRepository) FindByVariant(userID, productID, variantID uuid.UUID) (*models.CartItem, error) {
+	return r.findOne("user_id = ? AND product_id = ? AND variant_id = ?", userID, productID, variantID)
+}
+
 func (r *cartRepository) Save(item *models.CartItem) error {
 	return r.db.Save(item).Error
 }
 
-func (r *cartRepository) UpdateQuantity(userID, productID uuid.UUID, quantity int) error {
+func (r *cartRepository) UpdateQuantity(userID, itemID uuid.UUID, quantity int) error {
 	return r.db.Model(&models.CartItem{}).
-		Where("user_id = ? AND product_id = ?", userID, productID).
+		Where("user_id = ? AND id = ?", userID, itemID).
 		Update("quantity", quantity).Error
 }
 
-func (r *cartRepository) DeleteItem(userID, productID uuid.UUID) error {
-	return r.db.Where("user_id = ? AND product_id = ?", userID, productID).
+func (r *cartRepository) DeleteItem(userID, itemID uuid.UUID) error {
+	return r.db.Where("user_id = ? AND id = ?", userID, itemID).
 		Delete(&models.CartItem{}).Error
 }
 

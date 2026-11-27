@@ -1,0 +1,189 @@
+/* Form sản phẩm 2 cột: thông tin bên trái, "Màu sắc & Kích cỡ" bên phải */
+.product-editor-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.product-editor-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.product-editor-info > h3,
+.variant-editor h3 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.variant-editor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  border-left: 1px solid #000;
+  padding-left: 24px;
+}
+
+.variant-editor strong,
+.variant-editor .variant-editor-total,
+.variant-editor label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.variant-editor p {
+  margin: 0;
+}
+
+.variant-editor .variant-editor-hint {
+  color: #666;
+  font-size: 11px;
+}
+
+.variant-editor .variant-editor-note {
+  border-left: 3px solid #000;
+  background: #f3f3f3;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+.variant-editor .variant-editor-warning {
+  color: #d32f2f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.variant-editor-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.variant-editor .variant-editor-chip {
+  display: flex;
+  min-height: 34px;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ddd;
+  padding: 5px 8px;
+  color: #000;
+  cursor: pointer;
+}
+
+.variant-editor .variant-editor-chip:has(input:checked) {
+  border-color: #000;
+  background: #f3f3f3;
+}
+
+.variant-editor input[type="checkbox"] {
+  width: 14px;
+  min-height: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #000;
+}
+
+.variant-editor-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #888;
+}
+
+.variant-editor-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.variant-editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.variant-editor-table th,
+.variant-editor-table td {
+  border: 1px solid #e0e0e0;
+  padding: 5px;
+  text-align: center;
+}
+
+.variant-editor-table thead th {
+  background: #000;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.variant-editor-table tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.variant-editor .variant-editor-table input {
+  width: 100%;
+  min-width: 52px;
+  min-height: 34px;
+  border: 1px solid #aaa;
+  padding: 4px;
+  text-align: center;
+}
+
+.variant-editor h3.variant-editor-divider {
+  margin-top: 8px;
+  border-top: 1px solid #000;
+  padding-top: 14px;
+}
+
+.variant-editor-discount {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.6fr) repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.variant-editor .variant-editor-discount label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.variant-editor .variant-editor-discount input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #aaa;
+  background: #fff;
+  padding: 7px 8px;
+  font-size: 12px;
+}
+
+.variant-editor-sale {
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+@media (max-width: 960px) {
+  .product-editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .variant-editor {
+    border-top: 1px solid #000;
+    border-left: 0;
+    padding-top: 18px;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .variant-editor-discount {
+    grid-template-columns: 1fr;
+  }
+}

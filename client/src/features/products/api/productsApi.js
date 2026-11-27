@@ -4,9 +4,28 @@ import { apiClient, normalizeProduct, normalizeCategory } from "../../../shared/
 // PRODUCTS API
 // ============================================
 export async function getProducts(params = {}) {
+    const result = await getProductsPage(params);
+    return result.items;
+}
+
+export async function getProductsPage(params = {}) {
     const res = await apiClient.get("/products", { params });
-    const items = res.data?.data?.items || res.data?.data || [];
-    return Array.isArray(items) ? items.map(normalizeProduct) : [];
+    const data = res.data?.data;
+    const items = Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+            ? data
+            : [];
+    const limit = Number(data?.limit ?? params.limit ?? 12) || 12;
+    const total = Number(data?.total ?? items.length);
+
+    return {
+        items: items.map(normalizeProduct),
+        total,
+        page: Number(data?.page ?? params.page ?? 1),
+        limit,
+        totalPages: Math.max(1, Number(data?.total_pages ?? Math.ceil(total / limit)) || 1),
+    };
 }
 
 export async function getBrands() {
@@ -15,8 +34,8 @@ export async function getBrands() {
     return Array.isArray(brands) ? brands : [];
 }
 
-export async function getTrendingProducts(limit = 8) {
-    const res = await apiClient.get("/products/trending", { params: { limit } });
+export async function getTrendingProducts(limit = 8, brand = "") {
+    const res = await apiClient.get("/products/trending", { params: { limit, ...(brand ? { brand } : {}) } });
     const items = res.data?.data?.items || [];
     return items.map(normalizeProduct);
 }
@@ -108,25 +127,39 @@ export async function addOrUpdateReview(productId, rating, comment) {
 // ============================================
 export const CART_UPDATED_EVENT = "streetvibe:cart-updated";
 
-export async function getCart() {
+// refreshPrices: tải lại giá mới nhất vì chương trình giảm giá có thời hạn
+export async function getCart({ refreshPrices = false } = {}) {
     const res = await apiClient.get("/cart");
     const items = res.data?.data?.items || [];
     const hydratedItems = await Promise.all(items.map(async (item) => {
         let product = normalizeProduct(item.product);
         const needsProductData = !product?.name || !Number(product.price) || !product.image;
-        if (needsProductData) {
+        // Tồn kho của biến thể trong giỏ; null nghĩa là chưa kiểm tra được
+        let available = null;
+        if (needsProductData || refreshPrices) {
             const productId = product?._id ?? item.product_id;
-            if (!productId) {
-                throw new Error("Cart item is missing its product ID");
+            try {
+                if (!productId) {
+                    throw new Error("Cart item is missing its product ID");
+                }
+                const productResponse = await apiClient.get(`/products/${productId}`);
+                const latestProduct = productResponse.data?.data;
+                if (!latestProduct) {
+                    throw new Error(`Product ${productId} could not be loaded`);
+                }
+                product = normalizeProduct({ ...item.product, ...latestProduct });
+                if (item.variant_id) {
+                    const variant = latestProduct.variants?.find((entry) => entry.id === item.variant_id);
+                    available = variant?.stock_quantity ?? 0;
+                }
+            } catch (error) {
+                // Sản phẩm không còn bán: vẫn hiện theo dữ liệu đã lưu trong giỏ nếu đủ
+                if (needsProductData) throw error;
+                console.error("Không thể cập nhật giá sản phẩm trong giỏ:", error);
+                if (error.response?.status === 404) available = 0;
             }
-            const productResponse = await apiClient.get(`/products/${productId}`);
-            const latestProduct = productResponse.data?.data;
-            if (!latestProduct) {
-                throw new Error(`Product ${productId} could not be loaded`);
-            }
-            product = normalizeProduct({ ...item.product, ...latestProduct });
         }
-        return { ...item, product };
+        return { ...item, product, available };
     }));
     return {
         result: {
@@ -135,52 +168,24 @@ export async function getCart() {
     };
 }
 
-export async function addToCart(productId, quantity, product) {
+export async function addToCart(productId, variantId, quantity) {
     const res = await apiClient.post("/cart/items", {
         product_id: productId,
-        quantity: Number(quantity),
-        product_name: product?.name || "",
-        product_price: Number(product?.price || 0),
-        product_image: product?.image || "",
-    });
-    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
-    const items = res.data?.data?.items || [];
-    return {
-        result: {
-            items: items.map((it) => ({
-                ...it,
-                product: normalizeProduct(it.product),
-            })),
-        },
-    };
-}
-
-export async function updateCartQuantity(productId, quantity) {
-    const res = await apiClient.put(`/cart/items/${productId}`, {
+        variant_id: variantId,
         quantity: Number(quantity),
     });
     window.dispatchEvent(new Event(CART_UPDATED_EVENT));
-    const items = res.data?.data?.items || [];
-    return {
-        result: {
-            items: items.map((it) => ({
-                ...it,
-                product: normalizeProduct(it.product),
-            })),
-        },
-    };
+    return res.data?.data;
 }
 
-export async function removeCartItem(productId) {
-    const res = await apiClient.delete(`/cart/items/${productId}`);
+export async function updateCartQuantity(itemId, quantity) {
+    const res = await apiClient.put(`/cart/items/${itemId}`, { quantity: Number(quantity) });
     window.dispatchEvent(new Event(CART_UPDATED_EVENT));
-    const items = res.data?.data?.items || [];
-    return {
-        result: {
-            items: items.map((it) => ({
-                ...it,
-                product: normalizeProduct(it.product),
-            })),
-        },
-    };
+    return res.data?.data;
+}
+
+export async function removeCartItem(itemId) {
+    const res = await apiClient.delete(`/cart/items/${itemId}`);
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+    return res.data?.data;
 }

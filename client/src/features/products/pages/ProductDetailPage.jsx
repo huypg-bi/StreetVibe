@@ -1,50 +1,63 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useWishlist } from "../hooks/useWishlist";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { getProductDetail, addToCart } from "../api/productsApi";
+import { getVariantColorOptions, getVariantSizeOptions, isFootwearProduct } from "../utils/categoryHierarchy";
+import { findSizeOption, getGarmentType, recommendSize } from "../utils/sizeAdvisor";
 import {
     ShoppingBag,
     Heart,
     Cpu,
-    Sliders,
-    X,
     Ruler,
 } from "lucide-react";
-import pumaImg from "../../../assets/img/puma.webp";
 import "../styles/atelierBrutal.css";
+import DiscountTag from "../../../shared/components/DiscountTag";
+import ProductPrice from "../../../shared/components/ProductPrice";
+import SoldOutOverlay from "../../../shared/components/SoldOutOverlay";
+import SimilarSportSection from "../components/SimilarSportSection";
+import CompleteFitSection from "../components/CompleteFitSection";
+import SizeAdvisorModal from "../components/SizeAdvisorModal";
+import ProfileSizeHint from "../components/ProfileSizeHint";
+import { getErrorMessage, toast } from "../../../shared/utils/toast";
+
+// Từ mức này trở xuống được xem là sắp hết hàng
+const LOW_STOCK_LIMIT = 5;
 
 export default function ProductDetailPage() {
     const { id } = useParams();
     const { wishlistIds, toggleWishlist } = useWishlist();
+    const { user } = useAuth();
 
-    const [productState, setProductState] = useState({ id: null, product: null, error: "" });
-    const [cartMessage, setCartMessage] = useState("");
-    const [activeThumb, setActiveThumb] = useState(0);
-    const [selectedSize, setSelectedSize] = useState("L");
+    const [productState, setProductState] = useState({ id: null, product: null });
+    const [activeThumb, setActiveThumb] = useState({ productId: null, index: 0 });
+    const [selectedColorId, setSelectedColorId] = useState("");
+    // Lưu kèm sản phẩm để size chọn ở sản phẩm trước không đè lên gợi ý của sản phẩm sau
+    const [sizeChoice, setSizeChoice] = useState({ productId: null, size: "" });
     const [quantity, setQuantity] = useState(1);
     const [expandedDescriptionForId, setExpandedDescriptionForId] = useState(null);
     const [descriptionCanExpand, setDescriptionCanExpand] = useState(false);
     const descriptionRef = useRef(null);
     const product = productState.id === id ? productState.product : null;
-    const productError = productState.id === id ? productState.error : "";
     const loading = productState.id !== id;
     const descriptionExpanded = expandedDescriptionForId === id;
+    const productImages = product
+        ? Array.from(new Set([
+            product.image,
+            ...(Array.isArray(product.images) ? product.images : []),
+        ].filter(Boolean)))
+        : [];
+    const activeThumbIndex = activeThumb.productId === id ? activeThumb.index : 0;
+    const activeImage = productImages[activeThumbIndex] || productImages[0];
 
-    // Fit Algorithm Matrix Modal State
     const [showSizeModal, setShowSizeModal] = useState(false);
-    const [heightVal, setHeightVal] = useState(178);
-    const [weightVal, setWeightVal] = useState(72);
+    const selectedSize = sizeChoice.productId === id ? sizeChoice.size : "";
+    const setSelectedSize = (size) => setSizeChoice({ productId: id, size });
 
-    // Dynamic Size Algorithm
-    const calculateRecommendedSize = (h, w) => {
-        if (h < 165 || w < 55) return { size: "S", accuracy: "97.8%", fitDesc: "Dáng Boxy Fit vừa vặn" };
-        if (h < 174 || w < 65) return { size: "M", accuracy: "98.2%", fitDesc: "Dáng Boxy Fit chuẩn form" };
-        if (h < 183 || w < 78) return { size: "L", accuracy: "98.8%", fitDesc: "Dáng Boxy Oversize chuẩn Lookbook" };
-        if (h < 190 || w < 90) return { size: "XL", accuracy: "98.4%", fitDesc: "Dáng Heavy Oversize thoải mái" };
-        return { size: "XXL", accuracy: "96.9%", fitDesc: "Dáng Drop Shoulder ngoại cỡ" };
-    };
-
-    const recommended = calculateRecommendedSize(heightVal, weightVal);
+    // Bấm vào thẻ gợi ý ở cuối trang thì sản phẩm mới phải hiện từ đầu trang
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [id]);
 
     useEffect(() => {
         let active = true;
@@ -52,19 +65,13 @@ export default function ProductDetailPage() {
             try {
                 const res = await getProductDetail(id);
                 if (!active) return;
-                setProductState({
-                    id,
-                    product: res?.product || null,
-                    error: res?.product ? "" : "Không tìm thấy sản phẩm này.",
-                });
+                setProductState({ id, product: res?.product || null });
+                if (!res?.product) toast.error("Không tìm thấy sản phẩm này.");
             } catch (error) {
                 console.error("Lỗi khi tải chi tiết sản phẩm:", error);
                 if (active) {
-                    setProductState({
-                        id,
-                        product: null,
-                        error: "Không thể tải sản phẩm. Vui lòng thử lại.",
-                    });
+                    setProductState({ id, product: null });
+                    toast.error("Không thể tải sản phẩm. Vui lòng thử lại.");
                 }
             }
         };
@@ -72,35 +79,55 @@ export default function ProductDetailPage() {
         return () => { active = false; };
     }, [id]);
 
+    // Chỉ bán màu và size Admin/Supplier đã đăng ký; lựa chọn hết hàng không bấm được
+    const variants = product?.variants ?? [];
+    const colorOptions = getVariantColorOptions(variants);
+    const activeColor = colorOptions.find((option) => option.id === selectedColorId && option.stock > 0)
+        ?? colorOptions.find((option) => option.stock > 0)
+        ?? colorOptions[0];
+    const colorVariants = variants.filter((variant) => variant.color_id === activeColor?.id);
+    const sizeOptions = getVariantSizeOptions(colorVariants);
+    // Size quần áo gợi ý theo hồ sơ (null với giày, phụ kiện hoặc khi thiếu số đo)
+    const garment = getGarmentType(product, sizeOptions);
+    const profileFit = garment
+        ? recommendSize({ gender: user?.gender, garment, heightCm: user?.height_cm, weightKg: user?.weight_kg })
+        : null;
+    const profileOption = findSizeOption(sizeOptions, profileFit?.size, { gender: user?.gender, garment });
+    // Ưu tiên: size người dùng bấm chọn, rồi size gợi ý còn hàng, rồi size còn hàng đầu tiên
+    const activeSize = sizeOptions.find((option) => option.name === selectedSize && option.stock > 0)
+        ?? (profileOption?.stock > 0 ? profileOption : undefined)
+        ?? sizeOptions.find((option) => option.stock > 0);
+    const activeVariant = colorVariants.find((variant) => variant.size?.name === activeSize?.name);
+    const availableStock = colorOptions.reduce((sum, option) => sum + option.stock, 0);
+    const maxQuantity = Number(activeVariant?.stock_quantity || 0);
+    const orderQuantity = Math.max(1, Math.min(quantity, maxQuantity));
+    const canBuy = Boolean(product) && maxQuantity > 0;
+    const isSoldOut = Boolean(product) && availableStock <= 0;
+    const allSizes = getVariantSizeOptions(variants);
+    const isFootwearSizing = allSizes.length > 0
+        ? allSizes.every((option) => option.isFootwear)
+        : isFootwearProduct(product);
+
     const handleAddToCart = async () => {
-        setCartMessage("");
         try {
-            await addToCart(id, quantity, product);
-            setCartMessage(`Đã thêm ${quantity} sản phẩm vào giỏ hàng.`);
+            await addToCart(id, activeVariant.id, orderQuantity);
+            toast.success(`Đã thêm ${orderQuantity} sản phẩm (${activeColor.name} / ${activeSize.name}) vào giỏ hàng.`);
         } catch (error) {
             console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
-            setCartMessage(error.response?.data?.message || "Không thể thêm sản phẩm vào giỏ hàng.");
+            toast.error(getErrorMessage(error, "Không thể thêm sản phẩm vào giỏ hàng."));
         }
     };
 
     const isWishlisted = wishlistIds.includes(String(id));
 
     const prodName = product?.name || "";
-    const prodPrice = product ? `${Number(product.price).toLocaleString("vi-VN")} ₫` : "";
     const prodDesc = product?.description || "";
-    const prodIdentifier = String(product?.id ?? product?._id ?? "");
-    const skuSuffix = prodIdentifier.replace(/-/g, "").slice(-8);
-    const skuNumber = Number.parseInt(skuSuffix, 16);
-    const prodSku = product?.sku || `${(product?.brand || product?.brand_name || "STREETVIBE").trim().toUpperCase()} - ${String(Number.isFinite(skuNumber) ? skuNumber % 1000000 : 1).padStart(6, "0")}`;
-    const productColors = Array.from(new Map(
-        [
-            ...(product?.colors || []),
-            ...(product?.variants || []).map((variant) => variant.color),
-        ]
-            .filter((color) => color?.hex_code)
-            .map((color) => [color.id ?? color.name, color])
-    ).values());
-
+    const prodSku = product?.sku || "—";
+    const stockStatus = availableStock <= 0
+        ? { label: "[SOLD OUT // HẾT HÀNG]", tone: "out" }
+        : availableStock <= LOW_STOCK_LIMIT
+            ? { label: `[LOW STOCK // CHỈ CÒN ${availableStock} SẢN PHẨM]`, tone: "low" }
+            : { label: `[IN STOCK // CÒN ${availableStock} SẢN PHẨM]`, tone: "in" };
     useEffect(() => {
         const frame = requestAnimationFrame(() => {
             const description = descriptionRef.current;
@@ -108,15 +135,6 @@ export default function ProductDetailPage() {
         });
         return () => cancelAnimationFrame(frame);
     }, [prodDesc]);
-
-    // Size chart table data
-    const sizeChart = [
-        { size: "S", length: "68 cm", chest: "116 cm", shoulder: "54 cm", sleeve: "58 cm" },
-        { size: "M", length: "71 cm", chest: "122 cm", shoulder: "56 cm", sleeve: "60 cm" },
-        { size: "L", length: "74 cm", chest: "128 cm", shoulder: "58 cm", sleeve: "62 cm" },
-        { size: "XL", length: "77 cm", chest: "134 cm", shoulder: "60 cm", sleeve: "64 cm" },
-        { size: "XXL", length: "80 cm", chest: "140 cm", shoulder: "62 cm", sleeve: "66 cm" },
-    ];
 
     return (
         <main className="atelier-pdp-page">
@@ -137,21 +155,22 @@ export default function ProductDetailPage() {
                         <span className="card-floating-badge">
                             <span className="tag-badge alert">[AUTHENTIC SPEC // NFC VERIFIED]</span>
                         </span>
-                        {product?.image
-                            ? <img src={product.image} alt={prodName} />
+                        {activeImage
+                            ? <img src={activeImage} alt={prodName} />
                             : <span>{loading ? "[ĐANG TẢI SẢN PHẨM]" : "[CHƯA CÓ ẢNH SẢN PHẨM]"}</span>}
+                        {isSoldOut && <SoldOutOverlay />}
                     </div>
-                    {productError && <p className="pdp-load-error" role="alert">{productError}</p>}
 
                     <div className="pdp-gallery-thumbs">
-                        {product?.image && [0].map((idx) => (
-                            <div
-                                key={idx}
-                                className={`pdp-thumb-item ${activeThumb === idx ? "active" : ""}`}
-                                onClick={() => setActiveThumb(idx)}
+                        {productImages.map((image, idx) => (
+                            <button
+                                type="button"
+                                key={`${image}-${idx}`}
+                                className={`pdp-thumb-item ${activeThumbIndex === idx ? "active" : ""}`}
+                                onClick={() => setActiveThumb({ productId: id, index: idx })}
                             >
-                                <img src={product.image} alt={`${prodName} thumbnail`} />
-                            </div>
+                                <img src={image} alt={`${prodName} thumbnail ${idx + 1}`} />
+                            </button>
                         ))}
                     </div>
 
@@ -166,14 +185,17 @@ export default function ProductDetailPage() {
                 <div className="pdp-spec-column">
                     <div className="pdp-product-info">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span className="mono-spec" style={{ color: "#d32f2f" }}>[EDITION: 007 // AVAILABLE]</span>
+                            <span className={`mono-spec pdp-stock-status ${stockStatus.tone}`}>
+                                {product ? stockStatus.label : ""}
+                            </span>
                             <span className="mono-spec">SKU: {prodSku}</span>
                         </div>
 
                         <div className="pdp-header-block">
                             <h1>{prodName}</h1>
                             <div className="pdp-price-tag">
-                                <span>{prodPrice}</span>
+                                {product && <ProductPrice product={product} />}
+                                <DiscountTag product={product} />
                                 <span className="tag-badge dim">[FREE DOMESTIC SHIPPING]</span>
                             </div>
                         </div>
@@ -203,57 +225,83 @@ export default function ProductDetailPage() {
                         {/* Color Selector */}
                         <div className="pdp-shade-row">
                             <span className="mono-spec">SHADE:</span>
-                            {productColors.length > 0 ? (
+                            {colorOptions.length > 0 && (
                                 <div className="pdp-color-swatches">
-                                    {productColors.map((color) => (
-                                        <span
-                                            key={color.id ?? color.name}
-                                            className="pdp-color-swatch"
-                                            style={{ backgroundColor: color.hex_code }}
-                                            title={color.name}
-                                            role="img"
+                                    {colorOptions.map((color) => (
+                                        <button
+                                            type="button"
+                                            key={color.id}
+                                            className={`pdp-color-swatch${activeColor?.id === color.id ? " active" : ""}`}
+                                            style={{ backgroundColor: color.hex }}
+                                            title={color.stock > 0 ? color.name : `${color.name} (hết hàng)`}
                                             aria-label={color.name}
+                                            aria-pressed={activeColor?.id === color.id}
+                                            disabled={color.stock <= 0}
+                                            onClick={() => {
+                                                setSelectedColorId(color.id);
+                                                setQuantity(1);
+                                            }}
                                         />
                                     ))}
                                 </div>
-                            ) : (
-                                <span className="mono-spec pdp-no-color">NONE</span>
                             )}
                         </div>
 
                         {/* Size Selector with Modal Trigger */}
                         <div style={{ marginBottom: "8px" }}>
                             <div className="pdp-size-header-row">
-                                <span className="mono-spec" style={{ fontWeight: "700" }}>KÍCH CỠ // SIZE</span>
-                                <button
-                                    type="button"
-                                    className="btn-open-size-calc"
-                                    onClick={() => setShowSizeModal(true)}
-                                >
-                                    [+ BẢNG TÍNH SIZE THÔNG MINH]
-                                </button>
+                                <span className="mono-spec" style={{ fontWeight: "700" }}>
+                                    {isFootwearSizing ? "SIZE CHÂN // FOOTWEAR" : "KÍCH CỠ // SIZE"}
+                                </span>
+                                {garment && (
+                                    <button
+                                        type="button"
+                                        className="btn-open-size-calc"
+                                        onClick={() => setShowSizeModal(true)}
+                                    >
+                                        [+ BẢNG TÍNH SIZE THÔNG MINH]
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="size-boxes-grid">
-                                {["S", "M", "L", "XL", "XXL"].map(size => (
-                                    <button
-                                        key={size}
-                                        type="button"
-                                        className={`size-box-btn ${selectedSize === size ? "active" : ""}`}
-                                        onClick={() => setSelectedSize(size)}
-                                    >
-                                        {size}
-                                    </button>
-                                ))}
-                            </div>
+                            {sizeOptions.length > 0 ? (
+                                <div
+                                    className="size-boxes-grid"
+                                    style={isFootwearSizing ? { gridTemplateColumns: "repeat(5, 1fr)" } : undefined}
+                                >
+                                    {sizeOptions.map((option) => (
+                                        <button
+                                            key={option.name}
+                                            type="button"
+                                            className={`size-box-btn ${activeSize?.name === option.name ? "active" : ""}`}
+                                            disabled={option.stock <= 0}
+                                            title={option.stock > 0 ? `Còn ${option.stock} sản phẩm` : "Hết hàng"}
+                                            onClick={() => setSelectedSize(option.name)}
+                                        >
+                                            {option.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                product && <p className="pdp-no-size">Sản phẩm chưa có màu và size để bán.</p>
+                            )}
+
+                            {garment && (
+                                <ProfileSizeHint
+                                    user={user}
+                                    result={profileFit}
+                                    option={profileOption}
+                                    selectedName={activeSize?.name}
+                                />
+                            )}
                         </div>
 
                         {/* Quantity Stepper & Add to Cart */}
                         <div style={{ display: "flex", gap: "12px", alignItems: "stretch", marginBottom: "8px" }}>
                             <div className="qty-stepper-box">
-                                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</button>
-                                <span>{quantity}</span>
-                                <button type="button" onClick={() => setQuantity(q => q + 1)}>+</button>
+                                <button type="button" onClick={() => setQuantity(Math.max(1, orderQuantity - 1))} disabled={orderQuantity <= 1}>-</button>
+                                <span>{orderQuantity}</span>
+                                <button type="button" onClick={() => setQuantity(orderQuantity + 1)} disabled={orderQuantity >= maxQuantity}>+</button>
                             </div>
 
                             <button
@@ -261,10 +309,10 @@ export default function ProductDetailPage() {
                                 className="btn-brutal"
                                 style={{ flex: 1, padding: "16px" }}
                                 onClick={handleAddToCart}
-                                disabled={!product || loading}
+                                disabled={!canBuy || loading}
                             >
                                 <ShoppingBag size={16} />
-                                [THÊM VÀO GIỎ HÀNG]
+                                {product && !canBuy ? "[HẾT HÀNG]" : "[THÊM VÀO GIỎ HÀNG]"}
                             </button>
 
                             <button
@@ -274,10 +322,9 @@ export default function ProductDetailPage() {
                                 onClick={() => toggleWishlist(id)}
                                 title="Lưu trữ"
                             >
-                                <Heart size={18} fill={isWishlisted ? "#d32f2f" : "none"} color={isWishlisted ? "#d32f2f" : "#000"} />
+                                <Heart size={18} fill={isWishlisted ? "#d32f2f" : "none"} color={isWishlisted ? "#d32f2f" : "currentColor"} />
                             </button>
                         </div>
-                        {cartMessage && <p className="pdp-cart-message" role="status">{cartMessage}</p>}
                     </div>
 
                     {/* Authenticity RFID & Warranty Card */}
@@ -293,174 +340,29 @@ export default function ProductDetailPage() {
                 </div>
             </div>
 
-            {/* ================= "COMPLETE THE FIT" BUNDLE SECTION ================= */}
-            <section className="complete-fit-section">
-                <div style={{ marginBottom: "20px" }}>
-                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[STYLE ALGORITHM // SYNERGY]</span>
-                    <h3 style={{ fontSize: "24px", fontWeight: "800", textTransform: "uppercase" }}>
-                        COMPLETE THE FIT // SET PHỐI KHUYÊN DÙNG (-15%)
-                    </h3>
-                </div>
+            {/* ================= "COMPLETE THE FIT" // AI GHÉP OUTFIT ================= */}
+            <CompleteFitSection
+                key={id}
+                product={product}
+                anchorColorId={activeColor?.id}
+                anchorShoeSize={isFootwearSizing ? activeSize?.name : ""}
+            />
 
-                <div className="complete-fit-wrapper">
-                    <div className="bundle-items-row">
-                        <div className="bundle-item-box">
-                            <img src={pumaImg} alt="Hoodie" />
-                            <h6>HEAVY HOODIE</h6>
-                            <span>1.450.000 ₫</span>
-                        </div>
-                        <div className="bundle-item-box">
-                            <img src={pumaImg} alt="Cargo" />
-                            <h6>TACTICAL CARGO</h6>
-                            <span>1.850.000 ₫</span>
-                        </div>
-                        <div className="bundle-item-box">
-                            <img src={pumaImg} alt="Chain" />
-                            <h6>TITANIUM CHAIN</h6>
-                            <span>650.000 ₫</span>
-                        </div>
-                    </div>
+            {/* ================= SẢN PHẨM TƯƠNG TỰ THEO MÔN THỂ THAO ================= */}
+            <SimilarSportSection product={product} />
 
-                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                        <div>
-                            <span className="mono-spec">[COMBO 3 MÓN LOOKBOOK]</span>
-                            <div style={{ fontSize: "24px", fontWeight: "800", margin: "8px 0" }}>
-                                3.357.000 ₫{" "}
-                                <s style={{ color: "#999", fontSize: "16px", fontWeight: "400" }}>3.950.000 ₫</s>
-                            </div>
-                            <span className="tag-badge alert">TIẾT KIỆM 593.000 ₫ (-15%)</span>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="btn-brutal"
-                            style={{ width: "100%", marginTop: "20px" }}
-                            onClick={() => alert("Đã thêm toàn bộ Lookbook Fit vào giỏ hàng với giá ưu đãi -15%!")}
-                        >
-                            [MUA TRỌN BỘ FIT NGAY]
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* ================= FIT ALGORITHM MATRIX SIZE MODAL ================= */}
-            {showSizeModal && (
-                <div className="size-modal-backdrop" onClick={() => setShowSizeModal(false)}>
-                    <div className="size-modal-container" onClick={(e) => e.stopPropagation()}>
-                        <div className="size-modal-header">
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <Sliders size={16} />
-                                <span>[FIT ALGORITHM MATRIX // V2.4]</span>
-                            </div>
-                            <button
-                                type="button"
-                                style={{ color: "#fff", cursor: "pointer" }}
-                                onClick={() => setShowSizeModal(false)}
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="size-modal-body">
-                            {/* Sliders */}
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                                <div className="slider-controller-card">
-                                    <div className="slider-label-row">
-                                        <span>CHIỀU CAO</span>
-                                        <strong>{heightVal} CM</strong>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="155"
-                                        max="195"
-                                        value={heightVal}
-                                        onChange={(e) => setHeightVal(Number(e.target.value))}
-                                    />
-                                    <small className="mono-spec" style={{ color: "#777" }}>Khoảng: 155cm - 195cm</small>
-                                </div>
-
-                                <div className="slider-controller-card">
-                                    <div className="slider-label-row">
-                                        <span>CÂN NẶNG</span>
-                                        <strong>{weightVal} KG</strong>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="45"
-                                        max="105"
-                                        value={weightVal}
-                                        onChange={(e) => setWeightVal(Number(e.target.value))}
-                                    />
-                                    <small className="mono-spec" style={{ color: "#777" }}>Khoảng: 45kg - 105kg</small>
-                                </div>
-                            </div>
-
-                            {/* Recommendation Banner */}
-                            <div className="recommended-fit-banner">
-                                <div>
-                                    <div className="fit-title">KÍCH CỠ KHUYÊN DÙNG: SIZE {recommended.size}</div>
-                                    <div style={{ fontSize: "13px", color: "#166534", marginTop: "2px" }}>
-                                        {recommended.fitDesc}
-                                    </div>
-                                </div>
-                                <div className="fit-accuracy">ĐỘ CHÍNH XÁC: {recommended.accuracy}</div>
-                            </div>
-
-                            {/* Measurement Table */}
-                            <div>
-                                <span className="mono-spec" style={{ display: "block", marginBottom: "8px", fontWeight: "700" }}>
-                                    BẢNG THÔNG SỐ ĐO THỰC TẾ (CM)
-                                </span>
-                                <table className="size-chart-table">
-                                    <thead>
-                                        <tr>
-                                            <th>SIZE</th>
-                                            <th>DÀI ÁO</th>
-                                            <th>RỘNG NGỰC</th>
-                                            <th>RỘNG VAI</th>
-                                            <th>DÀI TAY</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sizeChart.map(row => (
-                                            <tr
-                                                key={row.size}
-                                                className={row.size === recommended.size ? "highlighted" : ""}
-                                            >
-                                                <td>{row.size} {row.size === recommended.size ? "★ [KHUYÊN DÙNG]" : ""}</td>
-                                                <td>{row.length}</td>
-                                                <td>{row.chest}</td>
-                                                <td>{row.shoulder}</td>
-                                                <td>{row.sleeve}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Action apply */}
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", borderTop: "var(--border-subtle)", paddingTop: "10px" }}>
-                                <button
-                                    type="button"
-                                    className="btn-brutal-outline"
-                                    onClick={() => setShowSizeModal(false)}
-                                >
-                                    ĐÓNG
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn-brutal"
-                                    onClick={() => {
-                                        setSelectedSize(recommended.size);
-                                        setShowSizeModal(false);
-                                    }}
-                                >
-                                    [ÁP DỤNG SIZE {recommended.size} NGAY]
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {/* ================= BẢNG TÍNH SIZE THÔNG MINH ================= */}
+            {showSizeModal && garment && (
+                <SizeAdvisorModal
+                    user={user}
+                    productGarment={garment}
+                    sizeOptions={sizeOptions}
+                    onApply={(size) => {
+                        setSelectedSize(size);
+                        setShowSizeModal(false);
+                    }}
+                    onClose={() => setShowSizeModal(false)}
+                />
             )}
         </main>
     );

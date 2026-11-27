@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Filter } from "lucide-react";
-import { getBrands, getCategories, getProducts } from "../api/productsApi";
+import { getBrands, getCategories, getProductsPage } from "../api/productsApi";
 import { getAttributes } from "../../../shared/api/marketplaceApi";
+import { filterSizesByFootwear, getProductCategoryOptions, sortSizeNames } from "../utils/categoryHierarchy";
 import AtelierProductCard from "../components/AtelierProductCard";
+import CatalogSizeSlider from "../components/CatalogSizeSlider";
 import "../styles/atelierBrutal.css";
+import { toast } from "../../../shared/utils/toast";
+
+const PRODUCTS_PER_PAGE = 8;
 
 const FIT_OPTIONS = [
     { value: "BOXY_FIT", label: "BOXY FIT" },
@@ -13,15 +18,16 @@ const FIT_OPTIONS = [
 
 export default function BestSellerPage() {
     const [products, setProducts] = useState([]);
-    const [productsError, setProductsError] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [productsError, setProductsError] = useState(false);
     const [productsLoading, setProductsLoading] = useState(true);
     const [categories, setCategories] = useState([]);
     const [brands, setBrands] = useState([]);
     const [sizes, setSizes] = useState([]);
-    const [categoryError, setCategoryError] = useState("");
-    const [brandError, setBrandError] = useState("");
-    const [attributeError, setAttributeError] = useState("");
+    const [sports, setSports] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState("");
+    const [selectedSport, setSelectedSport] = useState("");
     const [selectedBrand, setSelectedBrand] = useState("");
     const [selectedFit, setSelectedFit] = useState("");
     const [selectedSize, setSelectedSize] = useState("");
@@ -35,33 +41,44 @@ export default function BestSellerPage() {
         seconds: 45,
     });
 
+    const updateCatalogFilter = (setFilter, value) => {
+        setCurrentPage(1);
+        setFilter(value);
+    };
+
     useEffect(() => {
         let active = true;
-        const params = {};
+        const params = { page: currentPage, limit: PRODUCTS_PER_PAGE };
         if (selectedCategory) params.category_id = selectedCategory;
+        if (selectedSport) params.sport_id = selectedSport;
         if (selectedBrand) params.brand = selectedBrand;
         if (selectedFit) params.fit = selectedFit;
         if (selectedSize) params.size = selectedSize;
         if (stockFilter !== "ALL") params.in_stock = stockFilter === "IN_STOCK";
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setProductsLoading(true);
-        getProducts(params)
-            .then((items) => {
+        getProductsPage(params)
+            .then((result) => {
                 if (active) {
-                    setProducts(items);
-                    setProductsError("");
+                    setProducts(result.items);
+                    setTotalPages(result.totalPages);
+                    setProductsError(false);
                 }
             })
-            .catch(() => { if (active) setProductsError("Không thể tải danh sách sản phẩm. Vui lòng thử lại sau."); })
+            .catch(() => {
+                if (!active) return;
+                setProductsError(true);
+                toast.error("Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
+            })
             .finally(() => { if (active) setProductsLoading(false); });
         return () => { active = false; };
-    }, [selectedCategory, selectedBrand, selectedFit, selectedSize, stockFilter]);
+    }, [currentPage, selectedCategory, selectedSport, selectedBrand, selectedFit, selectedSize, stockFilter]);
 
     useEffect(() => {
         let active = true;
         getCategories()
             .then((items) => { if (active) setCategories(items); })
-            .catch(() => { if (active) setCategoryError("Không thể tải danh mục sản phẩm."); });
+            .catch(() => { if (active) toast.error("Không thể tải danh mục sản phẩm."); });
         return () => { active = false; };
     }, []);
 
@@ -71,7 +88,7 @@ export default function BestSellerPage() {
             .then((items) => { if (active) setBrands(items); })
             .catch((error) => {
                 console.error("Lỗi khi tải danh sách thương hiệu:", error);
-                if (active) setBrandError("Không thể tải danh sách thương hiệu.");
+                if (active) toast.error("Không thể tải danh sách thương hiệu.");
             });
         return () => { active = false; };
     }, []);
@@ -82,18 +99,25 @@ export default function BestSellerPage() {
             .then((attributes) => {
                 if (active) {
                     setSizes(attributes?.sizes || []);
-                    setAttributeError("");
+                    setSports(attributes?.sports || []);
                 }
             })
             .catch((error) => {
                 console.error("Lỗi khi tải danh sách size:", error);
-                if (active) setAttributeError("Không thể tải size.");
+                if (active) toast.error("Không thể tải size.");
             });
         return () => { active = false; };
     }, []);
 
-    const sizeStops = ["", ...sizes.map((size) => size.name)];
-    const selectedSizeIndex = Math.max(0, sizeStops.indexOf(selectedSize));
+    const sizeGroups = [
+        { title: "Size Quần áo (Apparel)", isFootwear: false },
+        { title: "Size Chân (Footwear)", isFootwear: true },
+    ]
+        .map(({ title, isFootwear }) => ({
+            title,
+            sizeNames: sortSizeNames(filterSizesByFootwear(sizes, isFootwear).map((size) => size.name)),
+        }))
+        .filter((group) => group.sizeNames.length > 0);
 
     // Live countdown effect
     useEffect(() => {
@@ -139,16 +163,32 @@ export default function BestSellerPage() {
                         <select
                             className="catalog-category-select"
                             value={selectedCategory}
-                            onChange={(event) => setSelectedCategory(event.target.value)}
+                            onChange={(event) => updateCatalogFilter(setSelectedCategory, event.target.value)}
                         >
                             <option value="">TẤT CẢ DANH MỤC</option>
-                            {categories.map((category) => (
+                            {getProductCategoryOptions(categories).map((category) => (
                                 <option key={category.id ?? category._id} value={category.id ?? category._id}>
                                     {category.name}
                                 </option>
                             ))}
                         </select>
-                        {categoryError && <small className="catalog-filter-error">{categoryError}</small>}
+                    </div>
+
+                    <div>
+                        <div className="filter-section-title">
+                            <span>THỂ THAO // SPORT</span>
+                        </div>
+                        <select
+                            className="catalog-category-select"
+                            aria-label="Lọc theo môn thể thao"
+                            value={selectedSport}
+                            onChange={(event) => updateCatalogFilter(setSelectedSport, event.target.value)}
+                        >
+                            <option value="">TẤT CẢ MÔN THỂ THAO</option>
+                            {sports.map((sport) => (
+                                <option key={sport.id} value={sport.id}>{sport.name}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div>
@@ -158,76 +198,51 @@ export default function BestSellerPage() {
                         <select
                             className="catalog-category-select"
                             value={selectedBrand}
-                            onChange={(event) => setSelectedBrand(event.target.value)}
+                            onChange={(event) => updateCatalogFilter(setSelectedBrand, event.target.value)}
                         >
                             <option value="">TẤT CẢ THƯƠNG HIỆU</option>
                             {brands.map((brand) => (
                                 <option key={brand} value={brand}>{brand}</option>
                             ))}
                         </select>
-                        {brandError && <small className="catalog-filter-error">{brandError}</small>}
                     </div>
 
                     <div>
                         <div className="filter-section-title">
                             <span>FORM DÁNG // FIT</span>
                         </div>
-                        <div className="filter-btn-list">
-                            <button
-                                type="button"
-                                className={`filter-btn-item ${selectedFit === "" ? "active" : ""}`}
-                                onClick={() => setSelectedFit("")}
-                            >
-                                <span>TẤT CẢ FORM</span>
-                            </button>
+                        <select
+                            className="catalog-category-select"
+                            aria-label="Lọc theo form dáng"
+                            value={selectedFit}
+                            onChange={(event) => updateCatalogFilter(setSelectedFit, event.target.value)}
+                        >
+                            <option value="">TẤT CẢ FORM</option>
                             {FIT_OPTIONS.map((fit) => (
-                                <button
-                                    key={fit.value}
-                                    type="button"
-                                    className={`filter-btn-item ${selectedFit === fit.value ? "active" : ""}`}
-                                    onClick={() => setSelectedFit(fit.value)}
-                                >
-                                    <span>{fit.label}</span>
-                                </button>
+                                <option key={fit.value} value={fit.value}>{fit.label}</option>
                             ))}
-                        </div>
+                        </select>
                     </div>
 
                     <div>
                         <div className="filter-section-title">
                             <span>KÍCH THƯỚC // SIZE</span>
                         </div>
-                        {sizes.length > 0 ? (
-                            <div className="catalog-size-slider">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max={sizeStops.length - 1}
-                                    step="1"
-                                    value={selectedSizeIndex}
-                                    aria-label="Lọc theo kích thước"
-                                    onChange={(event) => setSelectedSize(sizeStops[Number(event.target.value)])}
-                                />
-                                <div
-                                    className="catalog-size-slider-labels"
-                                    style={{ gridTemplateColumns: `repeat(${sizeStops.length}, minmax(0, 1fr))` }}
-                                >
-                                    {sizeStops.map((size, index) => (
-                                        <button
-                                            key={size || "all"}
-                                            type="button"
-                                            className={index === selectedSizeIndex ? "active" : ""}
-                                            onClick={() => setSelectedSize(size)}
-                                        >
-                                            <span className="catalog-size-slider-tick" />
-                                            {size || "ALL"}
-                                        </button>
-                                    ))}
-                                </div>
+                        {sizeGroups.length > 0 ? (
+                            <div className="catalog-size-groups">
+                                {sizeGroups.map((group) => (
+                                    <CatalogSizeSlider
+                                        key={group.title}
+                                        title={group.title}
+                                        sizeNames={group.sizeNames}
+                                        selectedSize={selectedSize}
+                                        onSelect={(size) => updateCatalogFilter(setSelectedSize, size)}
+                                    />
+                                ))}
                             </div>
                         ) : (
                             <small className="catalog-filter-error">
-                                {attributeError || "Chưa có size được thiết lập."}
+                                Chưa có size được thiết lập.
                             </small>
                         )}
                     </div>
@@ -241,47 +256,56 @@ export default function BestSellerPage() {
                             <button
                                 type="button"
                                 className={`filter-btn-item ${stockFilter === "ALL" ? "active" : ""}`}
-                                onClick={() => setStockFilter("ALL")}
+                                onClick={() => updateCatalogFilter(setStockFilter, "ALL")}
                             >
                                 <span>TẤT CẢ</span>
                             </button>
                             <button
                                 type="button"
                                 className={`filter-btn-item ${stockFilter === "IN_STOCK" ? "active" : ""}`}
-                                onClick={() => setStockFilter("IN_STOCK")}
+                                onClick={() => updateCatalogFilter(setStockFilter, "IN_STOCK")}
                             >
                                 <span>SẴN SÀNG GIAO (IN STOCK)</span>
                             </button>
                             <button
                                 type="button"
                                 className={`filter-btn-item ${stockFilter === "OUT_OF_STOCK" ? "active" : ""}`}
-                                onClick={() => setStockFilter("OUT_OF_STOCK")}
+                                onClick={() => updateCatalogFilter(setStockFilter, "OUT_OF_STOCK")}
                             >
-                                <span>HẾT HÀNG</span>
+                                <span>HẾT HÀNG (SOLD OUT)</span>
                             </button>
                         </div>
                     </div>
                 </aside>
 
                 {/* Right: 4-Column Product Grid */}
-                <div style={{ background: "var(--surface-white)" }}>
+                <div className="catalog-results">
                     <div className="atelier-product-grid">
                         {products.map((product) => <AtelierProductCard key={product.id} product={product} />)}
                     </div>
                     {productsLoading && <p className="trending-load-message">Đang tải sản phẩm...</p>}
-                    {productsError && <p className="trending-load-message error">{productsError}</p>}
                     {!productsLoading && !productsError && products.length === 0 && (
                         <p className="trending-load-message">Chưa có sản phẩm nào được duyệt.</p>
                     )}
 
                     {/* Minimalist Pagination */}
-                    <div style={{ padding: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "var(--border-black)", fontFamily: "var(--font-mono)", fontSize: "12px" }}>
-                        <span>PAGE 01 // 04</span>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <button className="btn-brutal-outline" style={{ padding: "8px 16px" }} disabled>
+                    <div className="catalog-pagination">
+                        <span>PAGE {String(currentPage).padStart(2, "0")} // {String(totalPages).padStart(2, "0")}</span>
+                        <div className="catalog-pagination-controls">
+                            <button
+                                type="button"
+                                className="btn-brutal-outline"
+                                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                disabled={currentPage === 1 || productsLoading}
+                            >
                                 &larr; TRƯỚC
                             </button>
-                            <button className="btn-brutal" style={{ padding: "8px 16px" }}>
+                            <button
+                                type="button"
+                                className="btn-brutal"
+                                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                disabled={currentPage >= totalPages || productsLoading}
+                            >
                                 TIẾP THEO &rarr;
                             </button>
                         </div>
@@ -325,8 +349,7 @@ export default function BestSellerPage() {
                 <div>
                     <button
                         className="btn-brutal"
-                        style={{ background: "#fff", color: "#000" }}
-                        onClick={() => alert("ĐÃ LƯU ĐỊA CHỈ NHẬN MÃ DROP 008!")}
+                        onClick={() => toast.success("ĐÃ LƯU ĐỊA CHỈ NHẬN MÃ DROP 008!")}
                     >
                         [ĐĂNG KÝ NHẮC GIỜ VIP]
                     </button>

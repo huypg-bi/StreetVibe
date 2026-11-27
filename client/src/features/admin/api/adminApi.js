@@ -1,58 +1,26 @@
 import { apiClient, normalizeProduct, normalizeCategory } from "../../../shared/api/apiClient";
-export { getProducts, getCategories } from "../../products/api/productsApi";
+export { getProducts, getProductsPage, getCategories } from "../../products/api/productsApi";
+
+export async function getProductById(productId) {
+    const res = await apiClient.get(`/products/${productId}`);
+    return normalizeProduct(res.data?.data);
+}
 
 // ============================================
 // ADMIN PRODUCTS MANAGEMENT
 // ============================================
-export async function createProduct(product) {
-    const payload = {
-        name: product.name,
-        brand: product.brand,
-        fit: product.fit,
-        description: product.description,
-        price: Number(product.price),
-        stock: Number(product.stock),
-        sold_count: Number(product.soldCount || 0),
-        is_featured: product.isFeatured === true || product.isFeatured === "true",
-        category_id: product.categoryId,
-        image: product.image,
-        color_ids: product.colorIds || [],
-    };
-
+export async function createProduct(payload) {
     const res = await apiClient.post("/products", payload);
     return res.data?.data ? normalizeProduct(res.data.data) : null;
 }
 
-export async function updateProduct(product) {
-    const payload = {
-        name: product.name,
-        brand: product.brand,
-        fit: product.fit,
-        description: product.description,
-        price: Number(product.price),
-        stock: Number(product.stock),
-        sold_count: Number(product.soldCount || 0),
-        is_featured: product.isFeatured === true || product.isFeatured === "true",
-        category_id: product.categoryId,
-        image: product.image,
-        color_ids: product.colorIds || [],
-    };
-
-    const id = product.id ?? product._id;
-    const res = await apiClient.put(`/products/${id}`, payload);
+export async function updateProduct(productId, payload) {
+    const res = await apiClient.put(`/products/${productId}`, payload);
     return res.data?.data ? normalizeProduct(res.data.data) : null;
 }
 
 export async function deleteProduct(productId) {
     const res = await apiClient.delete(`/products/${productId}`);
-    return res.data?.data;
-}
-
-export async function patchFlagProduct(productId, flags) {
-    const payload = {
-        is_featured: flags.isFeatured,
-    };
-    const res = await apiClient.patch(`/products/${productId}/flags`, payload);
     return res.data?.data;
 }
 
@@ -82,22 +50,6 @@ export async function updateCategory(category) {
 
 export async function deleteCategory(id) {
     const res = await apiClient.delete(`/categories/${id}`);
-    return res.data?.data;
-}
-
-// ============================================
-// ADMIN MEDIA UPLOAD
-// ============================================
-export async function uploadImg(img) {
-    const formData = new FormData();
-    formData.append("image", img);
-
-    const res = await apiClient.post("/media/upload", formData, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    });
-
     return res.data?.data;
 }
 

@@ -5,6 +5,7 @@ use (
 	./api-gateway
 	./services/auth-service
 	./services/product-service
+	./services/ai-service
 	./services/customer-service
 	./services/media-service
 )

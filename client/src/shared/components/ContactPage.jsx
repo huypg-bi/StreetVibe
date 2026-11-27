@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { toast } from "../utils/toast";
 
 export default function ContactPage() {
     return (
@@ -31,7 +32,7 @@ export default function ContactPage() {
                         </div>
                     </div>
 
-                    <form className="contact-form" onSubmit={(e) => { e.preventDefault(); alert("Cảm ơn bạn đã gửi tin nhắn!"); }}>
+                    <form className="contact-form" onSubmit={(e) => { e.preventDefault(); toast.success("Cảm ơn bạn đã gửi tin nhắn!"); }}>
                         <div className="input-group">
                             <label>Full Name</label>
                             <input type="text" placeholder="Nguyễn Văn A" required />
@@ -44,7 +45,7 @@ export default function ContactPage() {
                             <label>Message</label>
                             <textarea placeholder="Nội dung tin nhắn..." required />
                         </div>
-                        <button type="submit" className="button button-lime" style={{ marginTop: "12px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        <button type="submit" className="btn-brutal" style={{ marginTop: "12px" }}>
                             <Send size={16} /> Gửi tin nhắn
                         </button>
                     </form>

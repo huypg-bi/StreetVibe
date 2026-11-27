@@ -1,0 +1,99 @@
+/* Hộp hướng dẫn nhập số đo khi khách hàng mới vào web */
+.size-setup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 20px;
+}
+
+.size-setup-card {
+  display: flex;
+  width: 100%;
+  max-width: 460px;
+  flex-direction: column;
+  gap: 14px;
+  border: 2px solid #000;
+  background: #fff;
+  padding: 24px;
+}
+
+.size-setup-tag {
+  color: #d32f2f;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.size-setup-card h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.size-setup-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.size-setup-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.size-setup-card label input,
+.size-setup-card label select {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  padding: 8px 10px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+}
+
+.size-setup-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.size-setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.size-setup-actions button {
+  border: 1px solid #000;
+  padding: 10px 18px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.size-setup-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.size-setup-skip {
+  background: #fff;
+  color: #000;
+}
+
+.size-setup-save {
+  background: #000;
+  color: #fff;
+}

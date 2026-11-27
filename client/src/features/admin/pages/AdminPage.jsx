@@ -5,6 +5,8 @@ import ProductsPanel from "../components/ProductsPanel";
 import CategoriesPanel from "../components/CategoriesPanel";
 import UsersPanel from "../components/UsersPanel";
 import MarketplaceAdminPanel from "../components/MarketplaceAdminPanel";
+import InventoryPanel from "../components/InventoryPanel";
+import AiPanel from "../components/ai/AiPanel";
 import {
     LogOut,
     Users,
@@ -17,6 +19,8 @@ import {
     Activity,
     ExternalLink,
     Tags,
+    Warehouse,
+    Bot,
 } from "lucide-react";
 import { getAdminDashboard } from "../../../shared/api/marketplaceApi";
 import "../styles/admin.css";
@@ -41,6 +45,10 @@ export default function AdminPage() {
             ? "SUPPLIER OPERATIONS"
             : activePage === "attributes"
             ? "MARKETPLACE // ATTRIBUTES"
+            : activePage === "inventory"
+            ? "WAREHOUSE // INVENTORY"
+            : activePage === "ai"
+            ? "AI OPS // GOVERNANCE"
             : "DROP OPERATIONS DASHBOARD";
 
     // Mock live inventory matrix items
@@ -131,10 +139,28 @@ export default function AdminPage() {
                             <span>SUPPLIER</span>
                         </button>
 
+                        <button
+                            type="button"
+                            className={`nav-item${activePage === "inventory" ? " active" : ""}`}
+                            onClick={() => setActivePage("inventory")}
+                        >
+                            <Warehouse size={15} />
+                            <span>WAREHOUSE MANAGEMENT</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`nav-item${activePage === "ai" ? " active" : ""}`}
+                            onClick={() => setActivePage("ai")}
+                        >
+                            <Bot size={15} />
+                            <span>AI MANAGEMENT</span>
+                        </button>
+
                         <p className="nav-section-title">[SYSTEM EXIT]</p>
                         <Link to="/" className="nav-item">
                             <ExternalLink size={15} />
-                            <span>XEM STOREFRONT</span>
+                            <span>VIEW STOREFRONT</span>
                         </Link>
                     </nav>
                 </div>
@@ -190,6 +216,8 @@ export default function AdminPage() {
                     {activePage === "users" && <UsersPanel />}
                     {activePage === "marketplace" && <MarketplaceAdminPanel key="supplier" mode="supplier" />}
                     {activePage === "attributes" && <MarketplaceAdminPanel key="attributes" mode="attributes" />}
+                    {activePage === "inventory" && <InventoryPanel />}
+                    {activePage === "ai" && <AiPanel />}
 
                     {/* ================= COMMAND CENTER DASHBOARD (WHEN activePage === null) ================= */}
                     {activePage === null && (

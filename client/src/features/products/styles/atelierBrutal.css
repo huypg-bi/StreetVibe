@@ -127,6 +127,46 @@
   color: var(--text-inverse);
 }
 
+.atelier-action-btn.danger {
+  border-color: var(--accent-alert);
+  color: var(--accent-alert);
+}
+
+.atelier-action-btn.danger:hover {
+  background: var(--accent-alert);
+  color: var(--text-inverse);
+}
+
+.header-member-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 2px 8px 2px 4px;
+  border: 1px solid var(--surface-black);
+  background: #fff;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.header-member-account img,
+.header-member-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid #000;
+  border-radius: 50%;
+  background: #f3f3f3;
+  object-fit: cover;
+  color: #000;
+}
+
 /* --------------------------------------------------------------------------
    2. HOMEPAGE HERO & SECTIONS
    -------------------------------------------------------------------------- */
@@ -282,6 +322,36 @@
   background: transparent;
 }
 
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 24px;
+  border-top: var(--border-black);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.catalog-pagination-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.catalog-pagination-controls .btn-brutal,
+.catalog-pagination-controls .btn-brutal-outline {
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.catalog-pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .atelier-product-card {
   background: #fff;
   border: var(--border-concrete);
@@ -318,6 +388,13 @@
   border-color: #d32f2f;
   background: #d32f2f;
   color: #fff;
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .card-brand-logo {
@@ -526,51 +603,6 @@
 }
 
 /* --------------------------------------------------------------------------
-   5. STREET DISPATCH FEED (SAIGON & TOKYO)
-   -------------------------------------------------------------------------- */
-.atelier-dispatch-feed {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin: 0 24px 32px;
-  background: transparent;
-}
-
-.dispatch-card {
-  position: relative;
-  aspect-ratio: 4/5;
-  background: #111;
-  border: var(--border-black);
-  overflow: hidden;
-}
-
-.dispatch-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(100%) contrast(120%);
-  transition: transform 0.4s ease;
-}
-
-.dispatch-card:hover img {
-  transform: scale(1.05);
-}
-
-.dispatch-card .dispatch-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px;
-  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  display: flex;
-  justify-content: space-between;
-}
-
-/* --------------------------------------------------------------------------
    6. ATELIER BRUTAL FOOTER
    -------------------------------------------------------------------------- */
 .atelier-footer {
@@ -696,6 +728,17 @@
   background: var(--surface-white);
 }
 
+/* Cột kết quả cao bằng cột lọc, thanh phân trang luôn nằm ở đáy */
+.catalog-results {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-white);
+}
+
+.catalog-results .catalog-pagination {
+  margin-top: auto;
+}
+
 .spec-filter-sidebar {
   border-right: var(--border-black);
   padding: 24px;
@@ -724,6 +767,41 @@
   gap: 6px;
 }
 
+.size-box-btn:disabled,
+.size-box-btn:disabled:hover {
+  border-color: #e0e0e0;
+  background: var(--surface-dim);
+  color: #aaa;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.qty-stepper-box button:disabled,
+.qty-stepper-box button:disabled:hover {
+  background: var(--surface-white);
+  color: #bbb;
+  cursor: default;
+}
+
+.pdp-no-size {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.pdp-stock-status {
+  font-weight: 700;
+}
+
+.pdp-stock-status.in {
+  color: #16a34a;
+}
+
+.pdp-stock-status.low,
+.pdp-stock-status.out {
+  color: var(--accent-alert);
+}
+
 .catalog-category-select {
   width: 100%;
   min-height: 40px;
@@ -743,6 +821,21 @@
   color: #d32f2f;
   font-family: var(--font-mono);
   font-size: 10px;
+}
+
+.catalog-size-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.catalog-size-group-title {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .catalog-size-slider input {
@@ -861,6 +954,11 @@
   border-bottom: var(--border-black);
 }
 
+/* Nền banner màu đen nên khi tô đen cần viền trắng */
+.drop-countdown-banner .btn-brutal:hover {
+  border-color: var(--surface-white);
+}
+
 .countdown-digits-row {
   display: flex;
   gap: 20px;
@@ -946,6 +1044,7 @@
   align-items: center;
   justify-content: center;
   padding: 5px;
+  font: inherit;
 }
 
 .pdp-thumb-item.active {
@@ -1055,6 +1154,32 @@
   flex: 0 0 18px;
   border: 1px solid #888;
   border-radius: 50%;
+}
+
+button.pdp-color-swatch {
+  position: relative;
+  cursor: pointer;
+}
+
+.pdp-color-swatch.active {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.pdp-color-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Gạch chéo màu đã hết hàng */
+.pdp-color-swatch:disabled::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -3px;
+  width: 22px;
+  border-top: 2px solid #d32f2f;
+  transform: rotate(-45deg);
 }
 
 .pdp-no-color {
@@ -1201,15 +1326,8 @@
 .recommended-fit-banner .fit-title {
   font-size: 16px;
   font-weight: 800;
-  color: #166534;
+  color: #16a34a;
   text-transform: uppercase;
-}
-
-.recommended-fit-banner .fit-accuracy {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: #15803d;
-  font-weight: 700;
 }
 
 .size-chart-table {
@@ -1338,6 +1456,22 @@
   padding: 4px;
 }
 
+.cart-item-thumb {
+  position: relative;
+}
+
+.cart-item-variant,
+.cart-item-warning {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.cart-item-desc .cart-item-warning {
+  color: var(--accent-alert);
+  font-weight: 700;
+}
+
 .cart-item-thumb img {
   max-width: 100%;
   max-height: 100%;
@@ -1375,7 +1509,8 @@
 }
 
 .qty-stepper-box button:hover {
-  background: var(--surface-dim);
+  background: var(--surface-black);
+  color: #fff;
 }
 
 .qty-stepper-box span {
@@ -1453,6 +1588,11 @@
   cursor: pointer;
 }
 
+.cart-refresh-button:hover:not(:disabled) {
+  background: #000;
+  color: #fff;
+}
+
 .cart-refresh-button:disabled {
   cursor: wait;
 }
@@ -1521,14 +1661,15 @@
   width: 32px;
   height: 32px;
   place-items: center;
-  border: 0;
-  background: transparent;
-  color: #888;
+  border: 1px solid #d32f2f;
+  background: #fff;
+  color: #d32f2f;
   cursor: pointer;
 }
 
 .cart-remove-button:hover {
-  color: #d32f2f;
+  background: #d32f2f;
+  color: #fff;
 }
 
 .cart-total-summary {
@@ -1660,6 +1801,16 @@
     gap: 12px;
     padding: 12px 14px;
   }
+  .catalog-pagination {
+    flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+  .catalog-pagination-controls {
+    width: 100%;
+  }
+  .catalog-pagination-controls button {
+    flex: 1;
+  }
   .atelier-manifesto-grid {
     gap: 12px;
     margin-right: 14px;
@@ -1669,12 +1820,6 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto;
     gap: 12px;
-  }
-  .atelier-dispatch-feed {
-    gap: 12px;
-    margin-right: 14px;
-    margin-left: 14px;
-    grid-template-columns: 1fr 1fr;
   }
   .footer-early-access {
     grid-template-columns: 1fr;

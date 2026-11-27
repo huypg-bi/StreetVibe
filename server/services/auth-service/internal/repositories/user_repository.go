@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"encoding/json"
 	"errors"
 
 	"streetvibe/auth-service/internal/models"
@@ -21,6 +22,9 @@ type UserRepository interface {
 	ApproveSupplierRequest(id uuid.UUID) error
 	Delete(id uuid.UUID) error
 	UpdateCustomerStatus(id uuid.UUID, status, note string) error
+	UpdateProfile(id uuid.UUID, updates map[string]interface{}) error
+	UpdatePassword(id uuid.UUID, password string) error
+	RequestSupplier(id uuid.UUID) error
 }
 
 type userRepository struct {
@@ -124,4 +128,53 @@ func (r *userRepository) UpdateCustomerStatus(id uuid.UUID, status, note string)
 		updates["admin_note"] = note
 	}
 	return r.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *userRepository) UpdateProfile(id uuid.UUID, updates map[string]interface{}) error {
+	if interests, ok := updates["interests"].([]string); ok {
+		data, err := json.Marshal(interests)
+		if err != nil {
+			return err
+		}
+		updates["interests"] = gorm.Expr("?::jsonb", string(data))
+	}
+	if brands, ok := updates["favorite_brands"].([]string); ok {
+		data, err := json.Marshal(brands)
+		if err != nil {
+			return err
+		}
+		updates["favorite_brands"] = gorm.Expr("?::jsonb", string(data))
+	}
+	return r.db.Model(&models.User{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *userRepository) UpdatePassword(id uuid.UUID, password string) error {
+	var user models.User
+	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
+		return err
+	}
+	if err := user.SetPassword(password); err != nil {
+		return err
+	}
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("password", user.Password).Error
+}
+
+func (r *userRepository) RequestSupplier(id uuid.UUID) error {
+	result := r.db.Model(&models.User{}).
+		Where("id = ? AND role = ? AND supplier_requested = ?", id, models.RoleCustomer, false).
+		Update("supplier_requested", true)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		user, err := r.FindByID(id)
+		if err != nil {
+			return err
+		}
+		if user != nil && user.Role == models.RoleCustomer && user.SupplierRequested {
+			return nil
+		}
+		return errors.New("supplier request can only be submitted by a customer")
+	}
+	return nil
 }

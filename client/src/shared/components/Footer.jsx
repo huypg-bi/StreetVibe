@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import "../../features/products/styles/atelierBrutal.css";
+import { toast } from "../utils/toast";
 
 export default function Footer() {
     return (
@@ -11,7 +12,7 @@ export default function Footer() {
                     <h3 style={{ marginTop: "6px" }}>15-MINUTE EARLY DROP ACCESS</h3>
                     <p>Nhận mã truy cập sớm vào kho lưu trữ trước mỗi đợt mở bán công khai. Số lượng giới hạn theo từng đợt sản xuất.</p>
                 </div>
-                <form className="early-access-form" onSubmit={(e) => { e.preventDefault(); alert("VIP PASS GRANTED. Kiểm tra hòm thư của bạn!"); }}>
+                <form className="early-access-form" onSubmit={(e) => { e.preventDefault(); toast.success("VIP PASS GRANTED. Kiểm tra hòm thư của bạn!"); }}>
                     <input type="email" placeholder="ENTER YOUR EMAIL FOR VIP PASS..." required />
                     <button type="submit" className="btn-brutal">
                         [ĐĂNG KÝ NGAY]

@@ -1,0 +1,63 @@
+/* z-index cao hơn modal của Admin (200) và Supplier (300) */
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 80px;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.image-lightbox-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Bấm vào vùng trống quanh ảnh vẫn đóng được */
+  pointer-events: none;
+}
+
+.image-lightbox-button {
+  position: absolute;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+.image-lightbox-button:hover {
+  border-color: #fff;
+  background: #000;
+  color: #fff;
+}
+
+.image-lightbox-close { top: 16px; right: 16px; }
+.image-lightbox-prev { top: calc(50% - 22px); left: 16px; }
+.image-lightbox-next { top: calc(50% - 22px); right: 16px; }
+
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .image-lightbox {
+    padding: 72px 12px;
+  }
+
+  .image-lightbox-prev,
+  .image-lightbox-next {
+    top: auto;
+    bottom: 12px;
+  }
+}

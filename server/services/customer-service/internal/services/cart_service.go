@@ -9,19 +9,29 @@ import (
 	"github.com/google/uuid"
 )
 
+// Tên, giá, ảnh không nhận từ trình duyệt mà lấy từ Product Service.
 type AddCartItemDTO struct {
-	ProductID    string  `json:"product_id" binding:"required"`
+	ProductID string `json:"product_id" binding:"required"`
+	VariantID string `json:"variant_id" binding:"required"`
+	Quantity  int    `json:"quantity"`
+}
+
+// VariantInfo là thông tin biến thể do Product Service xác nhận.
+type VariantInfo struct {
 	ProductName  string  `json:"product_name"`
-	ProductPrice float64 `json:"product_price"`
 	ProductImage string  `json:"product_image"`
-	Quantity     int     `json:"quantity"`
+	Price        float64 `json:"price"`
+	ColorName    string  `json:"color_name"`
+	SizeName     string  `json:"size_name"`
 }
 
 type CartService interface {
 	GetCart(userID string) ([]models.CartItemResponse, error)
-	AddToCart(userID string, dto *AddCartItemDTO) error
-	UpdateQuantity(userID string, productID string, quantity int) error
-	RemoveItem(userID string, productID string) error
+	GetItem(userID, itemID string) (*models.CartItem, error)
+	QuantityInCart(userID, productID, variantID string) (int, error)
+	SaveVariant(userID, productID, variantID string, quantity int, info VariantInfo) error
+	UpdateQuantity(userID, itemID string, quantity int) error
+	RemoveItem(userID, itemID string) error
 	ClearCart(userID string) error
 }
 
@@ -55,85 +65,83 @@ func (s *cartService) GetCart(userIDStr string) ([]models.CartItemResponse, erro
 				Price: it.ProductPrice,
 				Image: it.ProductImage,
 			},
+			VariantID: it.VariantID,
+			ColorName: it.ColorName,
+			SizeName:  it.SizeName,
 			CreatedAt: it.CreatedAt,
 		})
 	}
 	return res, nil
 }
 
-func (s *cartService) AddToCart(userIDStr string, dto *AddCartItemDTO) error {
-	uid, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return errors.New("invalid user id format")
+func parseIDs(values ...string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, len(values))
+	for i, value := range values {
+		id, err := uuid.Parse(value)
+		if err != nil {
+			return nil, errors.New("invalid id format")
+		}
+		ids[i] = id
 	}
-	pid, err := uuid.Parse(dto.ProductID)
-	if err != nil {
-		return errors.New("invalid product id format")
-	}
+	return ids, nil
+}
 
-	qty := dto.Quantity
-	if qty <= 0 {
-		qty = 1
+func (s *cartService) GetItem(userIDStr, itemIDStr string) (*models.CartItem, error) {
+	ids, err := parseIDs(userIDStr, itemIDStr)
+	if err != nil {
+		return nil, err
 	}
+	return s.repo.FindByID(ids[0], ids[1])
+}
 
-	existing, err := s.repo.FindItem(uid, pid)
+func (s *cartService) QuantityInCart(userIDStr, productIDStr, variantIDStr string) (int, error) {
+	ids, err := parseIDs(userIDStr, productIDStr, variantIDStr)
+	if err != nil {
+		return 0, err
+	}
+	item, err := s.repo.FindByVariant(ids[0], ids[1], ids[2])
+	if err != nil || item == nil {
+		return 0, err
+	}
+	return item.Quantity, nil
+}
+
+// SaveVariant đặt tổng số lượng của một biến thể trong giỏ.
+func (s *cartService) SaveVariant(userIDStr, productIDStr, variantIDStr string, quantity int, info VariantInfo) error {
+	ids, err := parseIDs(userIDStr, productIDStr, variantIDStr)
 	if err != nil {
 		return err
 	}
-
-	if existing != nil {
-		existing.Quantity += qty
-		if dto.ProductPrice > 0 {
-			existing.ProductPrice = dto.ProductPrice
-		}
-		if dto.ProductName != "" {
-			existing.ProductName = dto.ProductName
-		}
-		if dto.ProductImage != "" {
-			existing.ProductImage = dto.ProductImage
-		}
-		return s.repo.Save(existing)
+	item, err := s.repo.FindByVariant(ids[0], ids[1], ids[2])
+	if err != nil {
+		return err
 	}
-
-	newItem := &models.CartItem{
-		UserID:       uid,
-		ProductID:    pid,
-		ProductName:  dto.ProductName,
-		ProductPrice: dto.ProductPrice,
-		ProductImage: dto.ProductImage,
-		Quantity:     qty,
+	if item == nil {
+		item = &models.CartItem{UserID: ids[0], ProductID: ids[1], VariantID: &ids[2]}
 	}
-	return s.repo.Save(newItem)
+	item.Quantity = quantity
+	item.ProductName = info.ProductName
+	item.ProductPrice = info.Price
+	item.ProductImage = info.ProductImage
+	item.ColorName = info.ColorName
+	item.SizeName = info.SizeName
+	return s.repo.Save(item)
 }
 
-func (s *cartService) UpdateQuantity(userIDStr, productIDStr string, quantity int) error {
-	uid, err := uuid.Parse(userIDStr)
+func (s *cartService) UpdateQuantity(userIDStr, itemIDStr string, quantity int) error {
+	ids, err := parseIDs(userIDStr, itemIDStr)
 	if err != nil {
-		return errors.New("invalid user id format")
+		return err
 	}
-	pid, err := uuid.Parse(productIDStr)
-	if err != nil {
-		return errors.New("invalid product id format")
-	}
-
-	if quantity <= 0 {
-		return s.repo.DeleteItem(uid, pid)
-	}
-
-	return s.repo.UpdateQuantity(uid, pid, quantity)
+	return s.repo.UpdateQuantity(ids[0], ids[1], quantity)
 }
 
-func (s *cartService) RemoveItem(userIDStr, productIDStr string) error {
-	uid, err := uuid.Parse(userIDStr)
+func (s *cartService) RemoveItem(userIDStr, itemIDStr string) error {
+	ids, err := parseIDs(userIDStr, itemIDStr)
 	if err != nil {
-		return errors.New("invalid user id format")
+		return err
 	}
-	pid, err := uuid.Parse(productIDStr)
-	if err != nil {
-		return errors.New("invalid product id format")
-	}
-
-	return s.repo.DeleteItem(uid, pid)
+	return s.repo.DeleteItem(ids[0], ids[1])
 }
 
 func (s *cartService) ClearCart(userIDStr string) error {

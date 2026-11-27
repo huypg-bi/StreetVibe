@@ -125,6 +125,82 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Lấy thông tin thành công", user)
 }
 
+type UpdateProfileRequest struct {
+	Name           string   `json:"name" binding:"required,min=2,max=100"`
+	AvatarURL      string   `json:"avatar_url"`
+	Interests      []string `json:"interests"`
+	FavoriteBrands []string `json:"favorite_brands"`
+	HeightCm       float64  `json:"height_cm"`
+	WeightKg       float64  `json:"weight_kg"`
+	Gender         string   `json:"gender"`
+}
+
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
+func (h *AuthHandler) UpdateMe(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		userID = c.GetHeader("X-User-Id")
+	}
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Dữ liệu hồ sơ không hợp lệ", err.Error())
+		return
+	}
+	user, err := h.authService.UpdateProfile(
+		userID,
+		req.Name,
+		req.AvatarURL,
+		req.Gender,
+		req.Interests,
+		req.FavoriteBrands,
+		req.HeightCm,
+		req.WeightKg,
+	)
+	if err != nil {
+		response.InternalError(c, "Không thể cập nhật hồ sơ")
+		return
+	}
+	response.Success(c, http.StatusOK, "Cập nhật hồ sơ thành công", user)
+}
+
+func (h *AuthHandler) UpdateMyPassword(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		userID = c.GetHeader("X-User-Id")
+	}
+	var req UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Dữ liệu mật khẩu không hợp lệ", err.Error())
+		return
+	}
+	if err := h.authService.UpdatePassword(userID, req.CurrentPassword, req.NewPassword); err != nil {
+		if errors.Is(err, services.ErrInvalidCurrentPassword) {
+			response.BadRequest(c, "Mật khẩu hiện tại không chính xác", "")
+			return
+		}
+		response.InternalError(c, "Không thể cập nhật mật khẩu")
+		return
+	}
+	response.Success(c, http.StatusOK, "Cập nhật mật khẩu thành công", nil)
+}
+
+func (h *AuthHandler) RequestSupplier(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if userID == "" {
+		userID = c.GetHeader("X-User-Id")
+	}
+	user, err := h.authService.RequestSupplier(userID)
+	if err != nil {
+		response.BadRequest(c, "Không thể gửi yêu cầu Supplier", err.Error())
+		return
+	}
+	response.Success(c, http.StatusOK, "Đã gửi yêu cầu trở thành Supplier", user)
+}
+
 // ============================================
 // ADMIN USER MANAGEMENT HANDLERS
 // ============================================

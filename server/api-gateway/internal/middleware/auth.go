@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"streetvibe/api-gateway/internal/config"
+	"streetvibe/shared/clientip"
 	"streetvibe/shared/token"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,14 @@ import (
 // AuthForwarder decodes JWT if present and injects X-User-Id and X-User-Role headers for downstream services
 func AuthForwarder(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Xóa header định danh do client tự gửi để không giả mạo được người dùng hay quyền
+		for _, header := range []string{"X-User-Id", "X-User-Email", "X-User-Role"} {
+			c.Request.Header.Del(header)
+		}
+
+		// IP thật của khách, có chữ ký để service phía sau tin được
+		clientip.Set(c.Request, cfg.JWTSecret)
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader != "" {
 			parts := strings.Split(authHeader, " ")

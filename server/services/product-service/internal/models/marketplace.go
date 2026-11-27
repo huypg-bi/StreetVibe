@@ -10,6 +10,16 @@ import (
 type Size struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	Name      string         `gorm:"type:varchar(40);uniqueIndex;not null" json:"name"`
+	SizeType  string         `gorm:"type:varchar(20);not null;default:'apparel';index" json:"size_type"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+type Sport struct {
+	ID        uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	Name      string         `gorm:"type:varchar(80);uniqueIndex;not null" json:"name"`
+	Slug      string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"slug"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -29,7 +39,6 @@ type ProductVariant struct {
 	ProductID     uuid.UUID `gorm:"type:uuid;not null;index" json:"product_id"`
 	ColorID       uuid.UUID `gorm:"type:uuid;not null;index" json:"color_id"`
 	SizeID        uuid.UUID `gorm:"type:uuid;not null;index" json:"size_id"`
-	SKU           string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"sku"`
 	StockQuantity int       `gorm:"not null;default:0" json:"stock_quantity"`
 	Color         *Color    `gorm:"foreignKey:ColorID" json:"color,omitempty"`
 	Size          *Size     `gorm:"foreignKey:SizeID" json:"size,omitempty"`

@@ -11,6 +11,7 @@ import (
 
 type ProductFilter struct {
 	CategoryID string
+	SportID    string
 	Fit        string
 	Size       string
 	Brand      string
@@ -32,7 +33,6 @@ type ProductRepository interface {
 	FindFeatured(limit int) ([]models.Product, error)
 	FindBestSellers(categorySlug string, limit int) ([]models.Product, error)
 	Update(p *models.Product) error
-	PatchFlags(id uuid.UUID, isFeatured bool) error
 	Delete(id uuid.UUID) error
 }
 
@@ -60,11 +60,16 @@ func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, e
 	var products []models.Product
 	var total int64
 
-	query := r.db.Model(&models.Product{}).Preload("Category").Preload("Colors").Where("status = ?", "APPROVED")
+	query := r.db.Model(&models.Product{}).Preload("Category").Preload("Sport").Preload("Colors").Where("status = ?", "APPROVED")
 
 	if f.CategoryID != "" {
 		if cid, err := uuid.Parse(f.CategoryID); err == nil {
 			query = query.Where("category_id = ?", cid)
+		}
+	}
+	if f.SportID != "" {
+		if sid, err := uuid.Parse(f.SportID); err == nil {
+			query = query.Where("sport_id = ?", sid)
 		}
 	}
 	if f.Fit != "" {
@@ -72,7 +77,7 @@ func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, e
 	}
 	if f.Size != "" {
 		query = query.Where(
-			"EXISTS (SELECT 1 FROM product_variants pv JOIN sizes s ON s.id = pv.size_id WHERE pv.product_id = products.id AND LOWER(s.name) = LOWER(?))",
+			"EXISTS (SELECT 1 FROM product_variants pv JOIN sizes s ON s.id = pv.size_id WHERE pv.product_id = products.id AND pv.stock_quantity > 0 AND LOWER(s.name) = LOWER(?))",
 			f.Size,
 		)
 	}
@@ -89,10 +94,12 @@ func (r *productRepository) FindAll(f ProductFilter) ([]models.Product, int64, e
 		query = query.Where("price <= ?", *f.MaxPrice)
 	}
 	if f.InStock != nil {
+		// Cùng quy tắc với Product.IsSoldOut
+		hasStock := "EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = products.id AND pv.stock_quantity > 0)"
 		if *f.InStock {
-			query = query.Where("stock > 0")
+			query = query.Where(hasStock)
 		} else {
-			query = query.Where("stock <= 0")
+			query = query.Where("NOT " + hasStock)
 		}
 	}
 	if f.Search != "" {
@@ -144,6 +151,7 @@ func (r *productRepository) FindByID(id uuid.UUID) (*models.Product, error) {
 	var product models.Product
 	err := r.db.
 		Preload("Category").
+		Preload("Sport").
 		Preload("Colors").
 		Preload("Variants.Color").
 		Preload("Variants.Size").
@@ -189,10 +197,6 @@ func (r *productRepository) Update(p *models.Product) error {
 		}
 		return tx.Model(p).Association("Colors").Replace(p.Colors)
 	})
-}
-
-func (r *productRepository) PatchFlags(id uuid.UUID, isFeatured bool) error {
-	return r.db.Model(&models.Product{}).Where("id = ?", id).Update("is_featured", isFeatured).Error
 }
 
 func (r *productRepository) Delete(id uuid.UUID) error {

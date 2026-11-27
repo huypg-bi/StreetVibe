@@ -55,3 +55,21 @@ export async function getMe() {
         _id: user.id ?? user._id,
     };
 }
+
+export async function updateMe(payload) {
+    const res = await apiClient.put("/auth/me", payload);
+    return res.data?.data ? { ...res.data.data, _id: res.data.data.id ?? res.data.data._id } : null;
+}
+
+export async function updateMyPassword(currentPassword, newPassword) {
+    const res = await apiClient.put("/auth/me/password", {
+        current_password: currentPassword,
+        new_password: newPassword,
+    });
+    return res.data?.success === true;
+}
+
+export async function requestSupplier() {
+    const res = await apiClient.put("/auth/me/supplier-request");
+    return res.data?.data ? { ...res.data.data, _id: res.data.data.id ?? res.data.data._id } : null;
+}

@@ -10,41 +10,6 @@
   line-height: 1.5;
 }
 
-.admin-product-color-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #d0d0d0;
-  background: #fff;
-}
-
-.admin-product-color-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.admin-product-color-option input[type="checkbox"] {
-  width: 14px;
-  min-height: 0;
-  margin: 0;
-  accent-color: #000;
-}
-
-.admin-product-color-swatch {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  border: 1px solid #aaa;
-  border-radius: 50%;
-}
-
 .admin-wrapper .products-container.products-panel-container {
   overflow: visible;
   padding: 0;
@@ -106,14 +71,12 @@
 .products-header-actions .btn-add-product {
   min-height: 40px;
   padding: 0 16px;
-  background: #000;
-  color: #fff;
 }
 
-.products-header-actions .btn-add-product:hover,
+.products-header-actions button:hover:not(:disabled),
 .products-table-actions .btn-product-edit:hover {
-  background: #fff;
-  color: #000;
+  background: #000;
+  color: #fff;
 }
 
 .products-header-actions .btn-panel-refresh {
@@ -191,12 +154,13 @@
   text-align: left;
 }
 
-.products-name-column { width: 19%; }
-.products-description-column { width: 17%; }
-.products-price-column { width: 14%; }
+.products-name-column { width: 18%; }
+.products-description-column { width: 15%; }
+.products-price-column { width: 12%; }
 .products-category-column,
-.products-brand-column { width: 12%; }
-.products-actions-column { width: 26%; }
+.products-brand-column { width: 10%; }
+.products-actions-column { width: 25%; }
+.products-detail-column { width: 10%; }
 
 .admin-wrapper .products-panel-container .products-table th {
   padding: 14px 16px;
@@ -264,4 +228,17 @@
   .products-panel-container {
     padding: 18px;
   }
+}
+
+.admin-product-current-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-product-current-images img {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #ddd;
+  object-fit: cover;
 }

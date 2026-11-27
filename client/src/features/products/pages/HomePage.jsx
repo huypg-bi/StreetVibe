@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { getTrendingProducts } from "../api/productsApi";
 import AtelierProductCard from "../components/AtelierProductCard";
+import FavoriteBrandSection from "../components/FavoriteBrandSection";
 import bannerVideo from "../../../assets/video/banner.mp4";
-import pumaImg from "../../../assets/img/puma.webp";
 import "../styles/atelierBrutal.css";
+import { toast } from "../../../shared/utils/toast";
 
 export default function HomePage() {
     const [trendingDrops, setTrendingDrops] = useState([]);
-    const [trendingError, setTrendingError] = useState("");
+    const [trendingError, setTrendingError] = useState(false);
     const [trendingLoading, setTrendingLoading] = useState(true);
 
     useEffect(() => {
@@ -19,7 +20,9 @@ export default function HomePage() {
                 if (active) setTrendingDrops(items);
             })
             .catch(() => {
-                if (active) setTrendingError("Không thể tải sản phẩm trending. Vui lòng thử lại sau.");
+                if (!active) return;
+                setTrendingError(true);
+                toast.error("Không thể tải sản phẩm trending. Vui lòng thử lại sau.");
             })
             .finally(() => { if (active) setTrendingLoading(false); });
         return () => { active = false; };
@@ -106,7 +109,6 @@ export default function HomePage() {
             <section className="atelier-product-grid">
                 {trendingDrops.map((product) => <AtelierProductCard key={product.id} product={product} />)}
             </section>
-            {trendingError && <p className="trending-load-message error">{trendingError}</p>}
             {trendingLoading && <p className="trending-load-message">Đang tải sản phẩm trending...</p>}
             {!trendingLoading && !trendingError && trendingDrops.length === 0 && (
                 <p className="trending-load-message">Chưa có sản phẩm trending để hiển thị.</p>
@@ -196,47 +198,8 @@ export default function HomePage() {
                 </div>
             </section>
 
-            {/* ================= 4. STREET DISPATCH FEED (SAIGON & TOKYO) ================= */}
-            <section className="section-dossier-header">
-                <div>
-                    <span className="mono-spec" style={{ color: "#d32f2f" }}>[VISUAL ARCHIVE // 35MM]</span>
-                    <h2>STREET DISPATCH FEED // SAIGON &bull; TOKYO</h2>
-                </div>
-                <div className="dossier-ref">
-                    <span>LIVE LOOKBOOK STREAM // 2026 EDITION</span>
-                </div>
-            </section>
-
-            <section className="atelier-dispatch-feed">
-                <div className="dispatch-card">
-                    <img src={pumaImg} alt="Saigon Lookbook" />
-                    <div className="dispatch-info">
-                        <span>#01 SAIGON DISPATCH</span>
-                        <span>[10.7769° N]</span>
-                    </div>
-                </div>
-                <div className="dispatch-card">
-                    <img src={pumaImg} alt="Tokyo Lookbook" />
-                    <div className="dispatch-info">
-                        <span>#02 SHIBUYA OVERPASS</span>
-                        <span>[35.6595° N]</span>
-                    </div>
-                </div>
-                <div className="dispatch-card">
-                    <img src={pumaImg} alt="Concrete Alley" />
-                    <div className="dispatch-info">
-                        <span>#03 ATELIER RAW LAB</span>
-                        <span>[WORK IN PROGRESS]</span>
-                    </div>
-                </div>
-                <div className="dispatch-card">
-                    <img src={pumaImg} alt="Night Run" />
-                    <div className="dispatch-info">
-                        <span>#04 NIGHT CAMPAIGN</span>
-                        <span>[REFLECTIVE 3M]</span>
-                    </div>
-                </div>
-            </section>
+            {/* ================= 4. TOP BÁN CHẠY THEO NHÃN HÀNG YÊU THÍCH ================= */}
+            <FavoriteBrandSection />
         </main>
     );
 }

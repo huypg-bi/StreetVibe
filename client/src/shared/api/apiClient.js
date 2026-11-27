@@ -1,4 +1,5 @@
 import axios from "axios";
+import { expireSession, isTokenExpired } from "../utils/session";
 
 // Đọc URL từ biến môi trường .env (VITE_API_BASE_URL)
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
@@ -20,7 +21,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("token");
-        if (token) {
+        if (token && isTokenExpired(token)) {
+            expireSession(token);
+        } else if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -37,9 +40,11 @@ apiClient.interceptors.response.use(
         // Log lỗi hoặc xử lý tập trung khi gặp lỗi từ server
         if (error.response) {
             console.error(`[Axios Error ${error.response.status}]:`, error.response.data);
-            // Nếu token hết hạn hoặc không hợp lệ (401)
-            if (error.response.status === 401) {
-                // Có thể clear token nếu cần
+            // Server từ chối token (401). Đăng nhập sai cũng trả 401 nên phải loại ra.
+            const sentAuth = String(error.config?.headers?.Authorization || "");
+            const isCredentialRequest = /\/auth\/(login|register|refresh)/.test(error.config?.url || "");
+            if (error.response.status === 401 && !isCredentialRequest && sentAuth.startsWith("Bearer ")) {
+                expireSession(sentAuth.slice("Bearer ".length));
             }
         } else if (error.request) {
             console.error("[Axios Network Error]: Không thể kết nối đến server", error.message);
@@ -64,8 +69,8 @@ export function normalizeProduct(p) {
     return {
         ...p,
         _id: p.id ?? p._id,
-        originalPrice: p.original_price ?? p.originalPrice ?? (p.price ? Number((p.price * 1.25).toFixed(2)) : 0),
-        isFeatured: p.is_featured ?? p.isFeatured ?? false,
+        sportId: p.sport_id ?? p.sportId ?? "",
+        originalPrice: p.original_price ?? p.originalPrice ?? 0,
         soldCount: p.sold_count ?? p.soldCount ?? 0,
         cartCount: p.cart_count ?? p.cartCount ?? 0,
         averageRating: p.average_rating ?? p.averageRating ?? 5,

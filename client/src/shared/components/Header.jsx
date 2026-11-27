@@ -106,15 +106,25 @@ export default function Header() {
                         <span>SEARCH</span>
                     </Link>
 
-                    <Link to="/cart" className="atelier-action-btn" style={{ background: "#000", color: "#fff" }}>
+                    <Link to="/cart" className="atelier-action-btn">
                         <ShoppingBag size={14} />
                         <span>CART [{token ? cartCount : 0}]</span>
                     </Link>
 
                     {token ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Link to="/profile" className="header-member-account" title="Hồ sơ cá nhân">
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt={`Avatar ${user.name || "thành viên"}`} />
+                                ) : (
+                                    <span className="header-member-avatar">
+                                        {(user?.name || "M").slice(0, 1).toUpperCase()}
+                                    </span>
+                                )}
+                                <span className="header-member-name">{user?.name || "Tài khoản"}</span>
+                            </Link>
                             {user?.role === "admin" && (
-                                <Link to="/admin" className="atelier-action-btn" style={{ borderColor: "#d32f2f", color: "#d32f2f" }}>
+                                <Link to="/admin" className="atelier-action-btn danger">
                                     <Shield size={14} />
                                     <span>[ADMIN]</span>
                                 </Link>

@@ -39,8 +39,8 @@
   gap: 8px;
   min-height: 38px;
   padding: 0 16px;
-  background: #000;
-  color: #fff;
+  background: #fff;
+  color: #000;
   border: 1px solid #000;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -51,8 +51,8 @@
 }
 
 .btn-add-user:hover {
-  background: #fff;
-  color: #000;
+  background: #000;
+  color: #fff;
 }
 
 /* Filter bar */
@@ -172,6 +172,13 @@
   color: #777;
 }
 
+.user-avatar-circle img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Badges */
 .role-badge {
   display: inline-block;
@@ -221,9 +228,9 @@
 
 .btn-approve-supplier {
   padding: 6px 10px;
-  border: 1px solid #166534;
+  border: 1px solid #16a34a;
   background: #fff;
-  color: #166534;
+  color: #16a34a;
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -232,7 +239,7 @@
 }
 
 .btn-approve-supplier:hover {
-  background: #166534;
+  background: #16a34a;
   color: #fff;
 }
 
@@ -346,8 +353,8 @@
 .btn-modal-submit {
   min-height: 38px;
   padding: 0 18px;
-  background: #000;
-  color: #fff;
+  background: #fff;
+  color: #000;
   border: 1px solid #000;
   cursor: pointer;
   font-family: var(--font-mono);
@@ -367,11 +374,31 @@
 .alert-box.success {
   background: #f0fdf4;
   border-color: #16a34a;
-  color: #166534;
+  color: #16a34a;
 }
 
 .alert-box.error {
   background: #fef2f2;
   border-color: #d32f2f;
   color: #991b1b;
+}
+
+.btn-modal-submit:hover:not(:disabled),
+.btn-modal-cancel:hover,
+.users-panel-container .modal-close-btn:hover,
+.modal-content .modal-close-btn:hover {
+  background: #000;
+  color: #fff;
+}
+
+.modal-content .modal-close-btn {
+  border: 1px solid #000;
+}
+
+.users-panel-container button:disabled,
+.users-panel-container button:disabled:hover {
+  border-color: #ccc;
+  background: #fff;
+  color: #999;
+  cursor: default;
 }

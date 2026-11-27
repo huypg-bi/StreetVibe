@@ -61,17 +61,12 @@
   white-space: nowrap;
 }
 
-.categories-header-actions .btn-add-category {
-  min-height: 40px;
-  padding: 0 16px;
+
+
+.categories-header-actions button:hover:not(:disabled),
+.categories-table-actions .btn-category-edit:hover {
   background: #000;
   color: #fff;
-}
-
-.categories-header-actions .btn-add-category:hover,
-.categories-table-actions .btn-category-edit:hover {
-  background: #fff;
-  color: #000;
 }
 
 .categories-header-actions .btn-panel-refresh {

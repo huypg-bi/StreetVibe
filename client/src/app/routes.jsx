@@ -10,6 +10,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import AdminPage from "../features/admin/pages/AdminPage";
 import SupplierPage from "../features/supplier/pages/SupplierPage";
+import ProfilePage from "../features/auth/pages/ProfilePage";
 import ProtectedRoute from "../shared/components/ProtectedRoute";
 
 export default function AppRoutes() {
@@ -22,6 +23,14 @@ export default function AppRoutes() {
                 <Route path="/wishlist" element={<WishlistPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/product/:id" element={<ProductDetailPage />} />
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute allowedRoles={["customer", "supplier", "admin"]}>
+                            <ProfilePage />
+                        </ProtectedRoute>
+                    }
+                />
             </Route>
 
             {/* Standalone pages: no shared Header/Footer, matching the original login/register/admin pages */}

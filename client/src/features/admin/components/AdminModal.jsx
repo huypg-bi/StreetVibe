@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
-export default function AdminModal({ title, titleId, eyebrow, onClose, children }) {
+export default function AdminModal({ title, titleId, eyebrow, onClose, wide = false, children }) {
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -26,7 +26,7 @@ export default function AdminModal({ title, titleId, eyebrow, onClose, children 
             }}
         >
             <section
-                className="admin-modal-dialog"
+                className={`admin-modal-dialog${wide ? " admin-modal-dialog-wide" : ""}`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}

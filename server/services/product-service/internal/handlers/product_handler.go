@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"streetvibe/product-service/internal/models"
 	"streetvibe/product-service/internal/repositories"
 	"streetvibe/product-service/internal/services"
 	"streetvibe/shared/response"
@@ -18,6 +19,21 @@ type ProductHandler struct {
 
 func NewProductHandler(service services.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
+}
+
+// Gateway chỉ gắn X-User-Role từ JWT hợp lệ
+func isAdminViewer(c *gin.Context) bool {
+	return c.GetHeader("X-User-Role") == "admin"
+}
+
+// hideCostFromPublic xóa giá gốc (giá nhập) khỏi dữ liệu trả cho người không phải Admin.
+func hideCostFromPublic(c *gin.Context, products []models.Product) {
+	if isAdminViewer(c) {
+		return
+	}
+	for i := range products {
+		products[i].OriginalPrice = 0
+	}
 }
 
 func (h *ProductHandler) GetList(c *gin.Context) {
@@ -49,6 +65,7 @@ func (h *ProductHandler) GetList(c *gin.Context) {
 
 	filter := repositories.ProductFilter{
 		CategoryID: c.Query("category_id"),
+		SportID:    c.Query("sport_id"),
 		Fit:        c.Query("fit"),
 		Size:       c.Query("size"),
 		Brand:      c.Query("brand"),
@@ -67,6 +84,7 @@ func (h *ProductHandler) GetList(c *gin.Context) {
 		response.InternalError(c, "Lỗi khi lấy danh sách sản phẩm: "+err.Error())
 		return
 	}
+	hideCostFromPublic(c, result.Items)
 	response.Success(c, http.StatusOK, "Lấy danh sách sản phẩm thành công", result)
 }
 
@@ -88,6 +106,9 @@ func (h *ProductHandler) GetDetail(c *gin.Context) {
 		response.NotFound(c, "Không tìm thấy sản phẩm")
 		return
 	}
+	if !isAdminViewer(c) {
+		product.OriginalPrice = 0
+	}
 	response.Success(c, http.StatusOK, "Lấy chi tiết sản phẩm thành công", product)
 }
 
@@ -98,6 +119,7 @@ func (h *ProductHandler) GetFeatured(c *gin.Context) {
 		response.InternalError(c, "Lỗi khi lấy sản phẩm nổi bật")
 		return
 	}
+	hideCostFromPublic(c, products)
 	response.Success(c, http.StatusOK, "Lấy sản phẩm nổi bật thành công", gin.H{
 		"items": products,
 		"count": len(products),
@@ -112,6 +134,7 @@ func (h *ProductHandler) GetBestSellers(c *gin.Context) {
 		response.InternalError(c, "Lỗi khi lấy sản phẩm bán chạy")
 		return
 	}
+	hideCostFromPublic(c, products)
 	response.Success(c, http.StatusOK, "Lấy sản phẩm bán chạy thành công", gin.H{
 		"items": products,
 		"count": len(products),
@@ -155,27 +178,6 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 	response.Success(c, http.StatusOK, "Cập nhật sản phẩm thành công", product)
-}
-
-type PatchFlagRequest struct {
-	IsFeatured bool `json:"is_featured"`
-}
-
-func (h *ProductHandler) PatchFlags(c *gin.Context) {
-	id := c.Param("id")
-	var req PatchFlagRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Dữ liệu flag không hợp lệ", err.Error())
-		return
-	}
-
-	if err := h.service.PatchProductFlags(id, req.IsFeatured); err != nil {
-		response.InternalError(c, "Lỗi cập nhật cờ sản phẩm: "+err.Error())
-		return
-	}
-	response.Success(c, http.StatusOK, "Cập nhật cờ sản phẩm thành công", gin.H{
-		"is_featured": req.IsFeatured,
-	})
 }
 
 func (h *ProductHandler) Delete(c *gin.Context) {

@@ -1,0 +1,120 @@
+/* Bảng tính size và dòng gợi ý size ở trang chi tiết; khung modal dùng lại atelierBrutal.css */
+.size-advisor-container {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.size-advisor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.size-advisor-close {
+  color: #fff;
+  cursor: pointer;
+}
+
+.size-advisor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.size-advisor-toolbar a {
+  color: #000;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.size-advisor-tabs {
+  display: flex;
+}
+
+.size-advisor-tabs button {
+  min-width: 72px;
+  border: 1px solid #000;
+  background: #fff;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.size-advisor-tabs button + button {
+  border-left: 0;
+}
+
+.size-advisor-tabs button.active {
+  background: #000;
+  color: #fff;
+}
+
+.size-advisor-sliders {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.recommended-fit-banner.size-advisor-estimate {
+  border-color: #000;
+  background: #f3f3f3;
+}
+
+.recommended-fit-banner.size-advisor-estimate .fit-title {
+  color: #000;
+}
+
+.size-advisor-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.size-advisor-chart-title {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.size-advisor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: var(--border-subtle);
+  padding-top: 10px;
+}
+
+/* Dòng gợi ý dưới bộ chọn size */
+.size-advisor-hint {
+  margin: 8px 0 0;
+  border: 1px solid #000;
+  background: #f3f3f3;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.size-advisor-hint.warning {
+  border-color: #d32f2f;
+}
+
+.size-advisor-hint a {
+  color: #000;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .size-advisor-sliders {
+    grid-template-columns: 1fr;
+  }
+
+  .size-advisor-actions {
+    flex-direction: column;
+  }
+}

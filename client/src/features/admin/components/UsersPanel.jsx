@@ -17,7 +17,10 @@ import {
     X,
     UserCheck,
 } from "lucide-react";
+import Pagination from "../../../shared/components/Pagination";
+import { PAGE_SIZE, getTotalPages } from "../../../shared/utils/pagination";
 import "../styles/usersPanel.css";
+import { toast } from "../../../shared/utils/toast";
 
 const defaultNewUser = {
     name: "",
@@ -32,7 +35,8 @@ export default function UsersPanel() {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
-    const [alert, setAlert] = useState(null);
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
@@ -45,19 +49,24 @@ export default function UsersPanel() {
             const data = await getUsers({
                 search,
                 role: roleFilter,
-                limit: 50,
+                page,
+                limit: PAGE_SIZE,
             });
+            const nextTotal = data?.pagination?.total ?? 0;
+            // Trang hiện tại có thể trống sau khi xóa người dùng cuối cùng của trang
+            if (page > getTotalPages(nextTotal)) {
+                setPage(getTotalPages(nextTotal));
+                return;
+            }
             setUsers(data?.users || []);
+            setTotal(nextTotal);
         } catch (err) {
             console.error("Lỗi khi tải danh sách người dùng:", err);
-            setAlert({
-                type: "error",
-                message: "Không thể tải danh sách người dùng. Vui lòng thử lại!",
-            });
+            toast.error("Không thể tải danh sách người dùng. Vui lòng thử lại!");
         } finally {
             setLoading(false);
         }
-    }, [search, roleFilter]);
+    }, [search, roleFilter, page]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -68,10 +77,7 @@ export default function UsersPanel() {
 
     const handleToggleRole = async (targetUser) => {
         if (currentUser?.id === targetUser.id) {
-            setAlert({
-                type: "error",
-                message: "Bạn không thể tự thay đổi vai trò của chính mình!",
-            });
+            toast.error("Bạn không thể tự thay đổi vai trò của chính mình!");
             return;
         }
 
@@ -85,14 +91,11 @@ export default function UsersPanel() {
 
         try {
             await updateUserRole(targetUser.id, newRole);
-            setAlert({
-                type: "success",
-                message: `Đã đổi quyền của ${targetUser.name} sang ${newRole}!`,
-            });
+            toast.success(`Đã đổi quyền của ${targetUser.name} sang ${newRole}!`);
             loadUsers();
         } catch (err) {
             const errMsg = err.response?.data?.message || "Lỗi khi cập nhật quyền";
-            setAlert({ type: "error", message: errMsg });
+            toast.error(errMsg);
         }
     };
 
@@ -101,23 +104,17 @@ export default function UsersPanel() {
 
         try {
             await approveSupplierRequest(targetUser.id);
-            setAlert({
-                type: "success",
-                message: `Đã duyệt ${targetUser.name} thành Supplier. Quyền mới có hiệu lực sau lần đăng nhập tiếp theo.`,
-            });
+            toast.success(`Đã duyệt ${targetUser.name} thành Supplier. Quyền mới có hiệu lực sau lần đăng nhập tiếp theo.`);
             loadUsers();
         } catch (err) {
             const errMsg = err.response?.data?.message || "Lỗi khi duyệt yêu cầu Supplier";
-            setAlert({ type: "error", message: errMsg });
+            toast.error(errMsg);
         }
     };
 
     const handleDeleteUser = async (targetUser) => {
         if (currentUser?.id === targetUser.id) {
-            setAlert({
-                type: "error",
-                message: "Bạn không thể tự xóa tài khoản của chính mình!",
-            });
+            toast.error("Bạn không thể tự xóa tài khoản của chính mình!");
             return;
         }
 
@@ -127,37 +124,31 @@ export default function UsersPanel() {
 
         try {
             await deleteUser(targetUser.id);
-            setAlert({
-                type: "success",
-                message: `Đã xóa tài khoản ${targetUser.name} thành công!`,
-            });
+            toast.success(`Đã xóa tài khoản ${targetUser.name} thành công!`);
             loadUsers();
         } catch (err) {
             const errMsg = err.response?.data?.message || "Lỗi khi xóa người dùng";
-            setAlert({ type: "error", message: errMsg });
+            toast.error(errMsg);
         }
     };
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
         if (!formData.name || !formData.email || !formData.password) {
-            setAlert({ type: "error", message: "Vui lòng nhập đầy đủ thông tin!" });
+            toast.error("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
 
         setSubmitting(true);
         try {
             await createUser(formData);
-            setAlert({
-                type: "success",
-                message: `Tạo tài khoản "${formData.name}" thành công!`,
-            });
+            toast.success(`Tạo tài khoản "${formData.name}" thành công!`);
             setShowModal(false);
             setFormData(defaultNewUser);
             loadUsers();
         } catch (err) {
             const errMsg = err.response?.data?.message || "Lỗi khi tạo người dùng";
-            setAlert({ type: "error", message: errMsg });
+            toast.error(errMsg);
         } finally {
             setSubmitting(false);
         }
@@ -170,7 +161,7 @@ export default function UsersPanel() {
                 <div>
                     <h1>Quản lý người dùng</h1>
                     <p style={{ margin: "4px 0 0", color: "#666", fontSize: "12px" }}>
-                        Tổng số: {users.length} tài khoản trong hệ thống
+                        Tổng số: {total} tài khoản trong hệ thống
                     </p>
                 </div>
 
@@ -195,20 +186,6 @@ export default function UsersPanel() {
                 </div>
             </div>
 
-            {/* Notification alert */}
-            {alert && (
-                <div className={`alert-box ${alert.type}`}>
-                    <span>{alert.message}</span>
-                    <button
-                        type="button"
-                        onClick={() => setAlert(null)}
-                        style={{ float: "right", background: "none", border: "none", cursor: "pointer" }}
-                    >
-                        ✕
-                    </button>
-                </div>
-            )}
-
             {/* Filter Toolbar */}
             <div className="users-filters-bar">
                 <div className="users-search-wrapper">
@@ -217,14 +194,20 @@ export default function UsersPanel() {
                         type="text"
                         placeholder="Tìm kiếm theo tên hoặc email..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setPage(1);
+                        }}
                     />
                 </div>
 
                 <select
                     className="users-role-select"
                     value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
+                    onChange={(e) => {
+                        setRoleFilter(e.target.value);
+                        setPage(1);
+                    }}
                 >
                     <option value="">Tất cả vai trò</option>
                     <option value="admin">Quản trị viên (Admin)</option>
@@ -241,19 +224,20 @@ export default function UsersPanel() {
                             <th>Người dùng</th>
                             <th>Vai trò</th>
                             <th>Ngày tham gia</th>
+                            <th>Nâng quyền</th>
                             <th>Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading && users.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ textAlign: "center", padding: "30px", color: "#888" }}>
+                                <td colSpan={5} style={{ textAlign: "center", padding: "30px", color: "#888" }}>
                                     Đang tải dữ liệu...
                                 </td>
                             </tr>
                         ) : users.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ textAlign: "center", padding: "30px", color: "#888" }}>
+                                <td colSpan={5} style={{ textAlign: "center", padding: "30px", color: "#888" }}>
                                     Không tìm thấy người dùng nào phù hợp.
                                 </td>
                             </tr>
@@ -273,7 +257,11 @@ export default function UsersPanel() {
                                     <tr key={item.id}>
                                         <td>
                                             <div className="user-info-cell">
-                                                <div className="user-avatar-circle">{initial}</div>
+                                                <div className="user-avatar-circle">
+                                                    {item.avatar_url
+                                                        ? <img src={item.avatar_url} alt={`Avatar ${item.name}`} />
+                                                        : initial}
+                                                </div>
                                                 <div>
                                                     <div className="user-name-title">
                                                         {item.name} {isSelf && <span style={{ fontSize: "10px", color: "#888" }}>(Bạn)</span>}
@@ -292,6 +280,17 @@ export default function UsersPanel() {
                                         </td>
                                         <td>
                                             <div className="users-action-btns">
+                                                {item.supplier_requested && item.role === "customer" && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-approve-supplier"
+                                                        onClick={() => handleApproveSupplier(item)}
+                                                    >
+                                                        <UserCheck size={12} style={{ marginRight: "4px" }} />
+                                                        DUYỆT SUPPLIER
+                                                    </button>
+                                                )}
+
                                                 <button
                                                     type="button"
                                                     className="btn-toggle-role"
@@ -311,18 +310,10 @@ export default function UsersPanel() {
                                                         </>
                                                     )}
                                                 </button>
-
-                                                {item.supplier_requested && item.role === "customer" && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn-approve-supplier"
-                                                        onClick={() => handleApproveSupplier(item)}
-                                                    >
-                                                        <UserCheck size={12} style={{ marginRight: "4px" }} />
-                                                        DUYỆT SUPPLIER
-                                                    </button>
-                                                )}
-
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="users-action-btns">
                                                 {item.role === "customer" && (
                                                     <button
                                                         type="button"
@@ -356,6 +347,8 @@ export default function UsersPanel() {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination page={page} totalPages={getTotalPages(total)} onChange={setPage} disabled={loading} />
 
             {/* Modal Create User */}
             {showModal && (

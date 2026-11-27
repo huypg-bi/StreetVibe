@@ -12,7 +12,10 @@ import (
 var (
 	ErrProductNotFound     = errors.New("product not found")
 	ErrInvalidProductColor = errors.New("invalid product color id")
+	ErrTooManyImages       = errors.New("a product can have at most 5 images")
 )
+
+const maxProductImages = 5
 
 type ProductDTO struct {
 	Name          string   `json:"name" binding:"required"`
@@ -22,11 +25,12 @@ type ProductDTO struct {
 	Price         float64  `json:"price" binding:"required,gt=0"`
 	OriginalPrice float64  `json:"original_price"`
 	Stock         int      `json:"stock" binding:"gte=0"`
-	SoldCount     int      `json:"sold_count"`
-	IsFeatured    bool     `json:"is_featured"`
 	Image         string   `json:"image"`
+	Images        []string `json:"images"`
 	CategoryID    string   `json:"category_id" binding:"required"`
+	SportID       string   `json:"sport_id"`
 	ColorIDs      []string `json:"color_ids"`
+	Gender        string   `json:"gender"`
 }
 
 type ProductPaginationResult struct {
@@ -45,7 +49,6 @@ type ProductService interface {
 	GetFeaturedProducts(limit int) ([]models.Product, error)
 	GetBestSellers(categorySlug string, limit int) ([]models.Product, error)
 	UpdateProduct(id string, dto *ProductDTO) (*models.Product, error)
-	PatchProductFlags(id string, isFeatured bool) error
 	DeleteProduct(id string) error
 }
 
@@ -94,24 +97,34 @@ func (s *productService) CreateProduct(dto *ProductDTO) (*models.Product, error)
 		return nil, err
 	}
 
-	origPrice := dto.OriginalPrice
-	if origPrice <= 0 {
-		origPrice = dto.Price * 1.25 // Default 25% discount markup if not provided
+	if len(dto.Images) > maxProductImages {
+		return nil, ErrTooManyImages
+	}
+	if len(dto.Images) > 0 {
+		dto.Image = dto.Images[0]
+	}
+
+	var sportID *uuid.UUID
+	if dto.SportID != "" {
+		if sid, err := uuid.Parse(dto.SportID); err == nil {
+			sportID = &sid
+		}
 	}
 
 	product := &models.Product{
 		Name:          dto.Name,
 		Brand:         dto.Brand,
 		Fit:           dto.Fit,
+		Gender:        models.NormalizeGender(dto.Gender),
 		Slug:          makeSlug(dto.Name) + "-" + uuid.New().String()[:8],
 		Description:   dto.Description,
 		Price:         dto.Price,
-		OriginalPrice: origPrice,
+		OriginalPrice: dto.OriginalPrice,
 		Stock:         dto.Stock,
-		SoldCount:     dto.SoldCount,
-		IsFeatured:    dto.IsFeatured,
 		Image:         dto.Image,
+		Images:        dto.Images,
 		CategoryID:    catID,
+		SportID:       sportID,
 		Colors:        colors,
 		AverageRating: 5.0,
 	}
@@ -198,18 +211,42 @@ func (s *productService) UpdateProduct(idStr string, dto *ProductDTO) (*models.P
 	product.Name = dto.Name
 	product.Brand = dto.Brand
 	product.Fit = dto.Fit
+	// Client không gửi trường này thì giữ giá trị đang có
+	if dto.Gender != "" {
+		product.Gender = models.NormalizeGender(dto.Gender)
+	}
 	product.Description = dto.Description
 	product.Price = dto.Price
 	if dto.OriginalPrice > 0 {
 		product.OriginalPrice = dto.OriginalPrice
 	}
-	product.Stock = dto.Stock
-	product.SoldCount = dto.SoldCount
-	product.IsFeatured = dto.IsFeatured
+	// Có biến thể thì tồn kho là tổng các biến thể, không sửa trực tiếp
+	if len(product.Variants) == 0 {
+		product.Stock = dto.Stock
+	}
+	if len(dto.Images) > maxProductImages {
+		return nil, ErrTooManyImages
+	}
+	if len(dto.Images) > 0 {
+		dto.Image = dto.Images[0]
+	}
 	if dto.Image != "" {
 		product.Image = dto.Image
 	}
+	if dto.Images != nil {
+		product.Images = dto.Images
+	}
 	product.CategoryID = catID
+	// Bỏ quan hệ đã preload để GORM không ghi đè khóa ngoại mới bằng giá trị cũ
+	product.Category = nil
+	product.Sport = nil
+	if dto.SportID != "" {
+		if sid, err := uuid.Parse(dto.SportID); err == nil {
+			product.SportID = &sid
+		}
+	} else {
+		product.SportID = nil
+	}
 	if dto.ColorIDs != nil {
 		colors, err := productColors(dto.ColorIDs)
 		if err != nil {
@@ -222,14 +259,6 @@ func (s *productService) UpdateProduct(idStr string, dto *ProductDTO) (*models.P
 		return nil, err
 	}
 	return product, nil
-}
-
-func (s *productService) PatchProductFlags(idStr string, isFeatured bool) error {
-	uid, err := uuid.Parse(idStr)
-	if err != nil {
-		return errors.New("invalid product id format")
-	}
-	return s.repo.PatchFlags(uid, isFeatured)
 }
 
 func (s *productService) DeleteProduct(idStr string) error {

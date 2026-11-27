@@ -4,7 +4,9 @@ import { getCategories } from "../../products/api/productsApi";
 import AdminModal from "./AdminModal";
 import { createCategory, updateCategory, deleteCategory } from "../api/adminApi";
 import { getCategoryParentId, getParentCategories, isCategoryGroup } from "../../products/utils/categoryHierarchy";
+import PaginatedList from "../../../shared/components/PaginatedList";
 import "../styles/categoriesPanel.css";
+import { getErrorMessage, toast } from "../../../shared/utils/toast";
 
 const emptyForm = { name: "", parentId: "", isActive: "false" };
 
@@ -12,7 +14,6 @@ export default function CategoriesPanel() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    const [loadError, setLoadError] = useState("");
 
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [createForm, setCreateForm] = useState(emptyForm);
@@ -26,10 +27,9 @@ export default function CategoriesPanel() {
         try {
             const data = await getCategories();
             setCategories(data);
-            setLoadError("");
         } catch (error) {
             console.error("Lỗi khi tải danh sách category:", error);
-            setLoadError("Không thể tải danh sách category. Vui lòng thử lại.");
+            toast.error("Không thể tải danh sách category. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
@@ -57,10 +57,11 @@ export default function CategoriesPanel() {
             await createCategory(category);
             setShowCreateForm(false);
             setCreateForm(emptyForm);
+            toast.success("Đã tạo category.");
             await load();
         } catch (error) {
             console.error("Lỗi khi tạo danh mục:", error);
-            setLoadError(error.response?.data?.message || "Không thể tạo danh mục. Vui lòng kiểm tra danh mục cha.");
+            toast.error(getErrorMessage(error, "Không thể tạo danh mục. Vui lòng kiểm tra danh mục cha."));
         }
     };
 
@@ -85,10 +86,11 @@ export default function CategoriesPanel() {
         try {
             await updateCategory(category);
             setShowUpdateForm(false);
+            toast.success("Đã cập nhật category.");
             await load();
         } catch (error) {
             console.error("Lỗi khi cập nhật danh mục:", error);
-            setLoadError(error.response?.data?.message || "Không thể cập nhật danh mục. Vui lòng kiểm tra danh mục cha.");
+            toast.error(getErrorMessage(error, "Không thể cập nhật danh mục. Vui lòng kiểm tra danh mục cha."));
         }
     };
 
@@ -96,10 +98,11 @@ export default function CategoriesPanel() {
         if (!confirm("Bạn có muốn xóa category này?")) return;
         try {
             await deleteCategory(id);
+            toast.success("Đã xóa category.");
             await load();
         } catch (error) {
             console.error("Lỗi khi xóa danh mục:", error);
-            setLoadError(error.response?.data?.message || "Không thể xóa danh mục.");
+            toast.error(getErrorMessage(error, "Không thể xóa danh mục."));
         }
     };
 
@@ -126,8 +129,6 @@ export default function CategoriesPanel() {
                     </button>
                 </div>
             </div>
-
-            {loadError && <div className="categories-panel-alert error" role="alert">{loadError}</div>}
 
             <div className="categories-filters-bar">
                 <div className="categories-search-wrapper">
@@ -199,59 +200,63 @@ export default function CategoriesPanel() {
                 </AdminModal>
             )}
 
-            <div className="categories-table-wrapper">
-                <table className="categories-table">
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Danh mục cha</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading && categories.length === 0 ? (
-                            <tr><td colSpan={4} className="categories-table-empty">Đang tải dữ liệu...</td></tr>
-                        ) : filteredCategories.length === 0 ? (
-                            <tr><td colSpan={4} className="categories-table-empty">Không tìm thấy category phù hợp.</td></tr>
-                        ) : filteredCategories.map((category) => (
-                            <tr key={category._id}>
-                                <td className={`categories-table-name${getCategoryParentId(category) ? " child" : ""}`}>
-                                    {getCategoryParentId(category) ? `↳ ${category.name}` : category.name}
-                                </td>
-                                <td>{isCategoryGroup(category) ? "NHÓM CHA CỐ ĐỊNH" : category.parent?.name || "—"}</td>
-                                <td>
-                                    <span className={`category-status-badge ${category.isActive ? "active" : "inactive"}`}>
-                                        {category.isActive ? "Đang hiện" : "Đang ẩn"}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div className="categories-table-actions">
-                                        <button
-                                            type="button"
-                                            className="btn-category-edit"
-                                            onClick={() => startEdit(category)}
-                                            disabled={isCategoryGroup(category)}
-                                            title={isCategoryGroup(category) ? "Tên nhóm cha hệ thống được giữ cố định" : undefined}
-                                        >
-                                            <Pencil size={13} /> Sửa
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn-category-delete"
-                                            onClick={() => handleDelete(category._id)}
-                                            disabled={isCategoryGroup(category)}
-                                            title={isCategoryGroup(category) ? "Nhóm cha hệ thống không thể xóa" : undefined}
-                                        >
-                                            <Trash2 size={13} /> Xóa
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <PaginatedList items={filteredCategories} resetKey={search}>
+                {(rows) => (
+                    <div className="categories-table-wrapper">
+                        <table className="categories-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Danh mục cha</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading && categories.length === 0 ? (
+                                    <tr><td colSpan={4} className="categories-table-empty">Đang tải dữ liệu...</td></tr>
+                                ) : filteredCategories.length === 0 ? (
+                                    <tr><td colSpan={4} className="categories-table-empty">Không tìm thấy category phù hợp.</td></tr>
+                                ) : rows.map((category) => (
+                                    <tr key={category._id}>
+                                        <td className={`categories-table-name${getCategoryParentId(category) ? " child" : ""}`}>
+                                            {getCategoryParentId(category) ? `↳ ${category.name}` : category.name}
+                                        </td>
+                                        <td>{isCategoryGroup(category) ? "NHÓM CHA CỐ ĐỊNH" : category.parent?.name || "—"}</td>
+                                        <td>
+                                            <span className={`category-status-badge ${category.isActive ? "active" : "inactive"}`}>
+                                                {category.isActive ? "Đang hiện" : "Đang ẩn"}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="categories-table-actions">
+                                                <button
+                                                    type="button"
+                                                    className="btn-category-edit"
+                                                    onClick={() => startEdit(category)}
+                                                    disabled={isCategoryGroup(category)}
+                                                    title={isCategoryGroup(category) ? "Tên nhóm cha hệ thống được giữ cố định" : undefined}
+                                                >
+                                                    <Pencil size={13} /> Sửa
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-category-delete"
+                                                    onClick={() => handleDelete(category._id)}
+                                                    disabled={isCategoryGroup(category)}
+                                                    title={isCategoryGroup(category) ? "Nhóm cha hệ thống không thể xóa" : undefined}
+                                                >
+                                                    <Trash2 size={13} /> Xóa
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </PaginatedList>
 
             {showUpdateForm && updateForm && (
                 <AdminModal

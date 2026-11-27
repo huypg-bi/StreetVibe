@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { getWishlist, addWishlist, removeWishlist } from "../api/productsApi";
+import { getErrorMessage, toast } from "../../../shared/utils/toast";
 
 export function useWishlist() {
     const { token } = useAuth();
@@ -32,17 +33,24 @@ export function useWishlist() {
 
     const toggleWishlist = useCallback(async (id) => {
         if (!token) {
-            alert("Vui lòng đăng nhập để dùng wishlist");
+            toast.error("Vui lòng đăng nhập để dùng wishlist");
             navigate("/login");
             return;
         }
 
-        if (wishlistIds.includes(id)) {
-            await removeWishlist(id);
-            setWishlistIds((prev) => prev.filter((item) => item !== id));
-        } else {
-            await addWishlist(id);
-            setWishlistIds((prev) => [...prev, id]);
+        try {
+            if (wishlistIds.includes(id)) {
+                await removeWishlist(id);
+                setWishlistIds((prev) => prev.filter((item) => item !== id));
+                toast.success("Đã xóa khỏi wishlist.");
+            } else {
+                await addWishlist(id);
+                setWishlistIds((prev) => [...prev, id]);
+                toast.success("Đã thêm vào wishlist.");
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật wishlist:", error);
+            toast.error(getErrorMessage(error, "Không thể cập nhật wishlist."));
         }
     }, [token, wishlistIds, navigate]);
 

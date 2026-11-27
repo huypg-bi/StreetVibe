@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, Mail, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import streetVibeLogo from "../../../assets/img/logo.png";
 import "../styles/auth.css";
+import { toast } from "../../../shared/utils/toast";
 
 export default function RegisterPage() {
     const { register } = useAuth();
@@ -16,7 +17,7 @@ export default function RegisterPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (password !== confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+            toast.error("Mật khẩu xác nhận không khớp!");
             return;
         }
         await register(name, email, password, supplierRequest);

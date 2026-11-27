@@ -7,6 +7,7 @@ import (
 	"streetvibe/media-service/internal/config"
 	"streetvibe/media-service/internal/handlers"
 	"streetvibe/media-service/internal/middleware"
+	"streetvibe/shared/identity"
 	"streetvibe/shared/response"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,8 @@ func main() {
 	cfg := config.LoadConfig()
 
 	r := gin.Default()
+	// Phải đứng trước mọi route: không tin header danh tính do bên ngoài gửi
+	r.Use(identity.Middleware(cfg.JWTSecret))
 
 	// Static file server to serve uploaded images
 	r.Static("/uploads", cfg.UploadDir)
@@ -33,8 +36,7 @@ func main() {
 	// Upload routes
 	v1 := r.Group("/api/v1/media")
 	{
-		// Single image upload
-		v1.POST("/upload", middleware.AdminMiddleware(cfg), uploadHandler.UploadSingle)
+		v1.POST("/upload", middleware.UploadMemberMiddleware(cfg), uploadHandler.UploadSingle)
 		// Multiple images upload
 		v1.POST("/upload-multiple", middleware.AdminMiddleware(cfg), uploadHandler.UploadMultiple)
 	}

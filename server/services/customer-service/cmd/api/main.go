@@ -10,6 +10,7 @@ import (
 	"streetvibe/customer-service/internal/middleware"
 	"streetvibe/customer-service/internal/repositories"
 	"streetvibe/customer-service/internal/services"
+	"streetvibe/shared/identity"
 	"streetvibe/shared/response"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,8 @@ func main() {
 
 	// Router
 	r := gin.Default()
+	// Phải đứng trước mọi route: không tin header danh tính do bên ngoài gửi
+	r.Use(identity.Middleware(cfg.JWTSecret))
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
@@ -69,8 +72,8 @@ func main() {
 			if cartHandler != nil {
 				cartGroup.GET("", cartHandler.GetCart)
 				cartGroup.POST("/items", cartHandler.AddItem)
-				cartGroup.PUT("/items/:productId", cartHandler.UpdateQuantity)
-				cartGroup.DELETE("/items/:productId", cartHandler.RemoveItem)
+				cartGroup.PUT("/items/:itemId", cartHandler.UpdateQuantity)
+				cartGroup.DELETE("/items/:itemId", cartHandler.RemoveItem)
 			}
 		}
 

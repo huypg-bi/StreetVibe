@@ -1,0 +1,30 @@
+/* Nền tối phủ lưới điểm ảnh, ảnh sản phẩm mờ phía dưới */
+.sold-out-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 4px),
+    rgba(22, 21, 21, 0.82);
+  backdrop-filter: grayscale(100%) blur(1px);
+  pointer-events: none;
+}
+
+.sold-out-overlay span {
+  color: #fff;
+  font-family: "Pixelify Sans", var(--font-mono);
+  font-size: clamp(28px, 3vw, 46px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sold-out-overlay.compact span {
+  font-size: 13px;
+  letter-spacing: 0;
+}

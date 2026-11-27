@@ -14,6 +14,7 @@ import (
 var (
 	ErrUserAlreadyExists       = errors.New("user with this email already exists")
 	ErrInvalidCredentials      = errors.New("invalid email or password")
+	ErrInvalidCurrentPassword  = errors.New("current password is incorrect")
 	ErrUserNotFound            = errors.New("user not found")
 	ErrCannotModifySelf        = errors.New("cannot modify or delete your own account")
 	ErrSupplierRequestNotFound = errors.New("pending supplier request not found")
@@ -30,6 +31,9 @@ type AuthService interface {
 	DeleteUser(currentUserID, targetUserID string) error
 	CreateUserByAdmin(name, email, password string, role models.Role) (*models.User, error)
 	UpdateCustomerStatus(targetUserID, status, note string) error
+	UpdateProfile(userID string, name, avatarURL, gender string, interests, favoriteBrands []string, heightCm, weightKg float64) (*models.User, error)
+	UpdatePassword(userID, currentPassword, newPassword string) error
+	RequestSupplier(userID string) (*models.User, error)
 }
 
 type AuthResponse struct {
@@ -265,4 +269,76 @@ func (s *authService) CreateUserByAdmin(name, email, password string, role model
 	}
 
 	return newUser, nil
+}
+
+func (s *authService) UpdateProfile(userID string, name, avatarURL, gender string, interests, favoriteBrands []string, heightCm, weightKg float64) (*models.User, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user id format")
+	}
+	user, err := s.repo.FindByID(uid)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+	var bmi float64
+	if heightCm > 0 {
+		heightM := heightCm / 100
+		bmi = weightKg / (heightM * heightM)
+	}
+	updates := map[string]interface{}{
+		"name":            name,
+		"avatar_url":      avatarURL,
+		"gender":          gender,
+		"interests":       interests,
+		"favorite_brands": favoriteBrands,
+		"height_cm":       heightCm,
+		"weight_kg":       weightKg,
+		"bmi":             bmi,
+	}
+	if err := s.repo.UpdateProfile(uid, updates); err != nil {
+		return nil, err
+	}
+	return s.repo.FindByID(uid)
+}
+
+func (s *authService) UpdatePassword(userID, currentPassword, newPassword string) error {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user id format")
+	}
+	user, err := s.repo.FindByID(uid)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if !user.CheckPassword(currentPassword) {
+		return ErrInvalidCurrentPassword
+	}
+	return s.repo.UpdatePassword(uid, newPassword)
+}
+
+func (s *authService) RequestSupplier(userID string) (*models.User, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user id format")
+	}
+	user, err := s.repo.FindByID(uid)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+	if user.Role != models.RoleCustomer {
+		return user, nil
+	}
+	if err := s.repo.RequestSupplier(uid); err != nil {
+		return nil, err
+	}
+	return s.repo.FindByID(uid)
 }

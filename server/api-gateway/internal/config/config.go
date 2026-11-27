@@ -11,6 +11,7 @@ type Config struct {
 	ProductServiceURL  string
 	CustomerServiceURL string
 	MediaServiceURL    string
+	AIServiceURL       string
 	AllowedOrigins     string
 }
 
@@ -29,6 +30,7 @@ func LoadConfig() *Config {
 		ProductServiceURL:  getEnv("PRODUCT_SERVICE_URL", "http://localhost:8082"),
 		CustomerServiceURL: getEnv("CUSTOMER_SERVICE_URL", "http://localhost:8083"),
 		MediaServiceURL:    getEnv("MEDIA_SERVICE_URL", "http://localhost:8084"),
+		AIServiceURL:       getEnv("AI_SERVICE_URL", "http://localhost:8085"),
 		AllowedOrigins:     getEnv("ALLOWED_ORIGINS", "*"),
 	}
 }

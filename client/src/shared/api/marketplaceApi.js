@@ -3,20 +3,42 @@ import { apiClient } from "./apiClient";
 const unwrap = (res) => res.data?.data || null;
 
 export const getAttributes = async () => unwrap(await apiClient.get("/marketplace/attributes"));
-export const createSize = async (name) => unwrap(await apiClient.post("/marketplace/sizes", { name }));
+export const createSize = async (name, sizeType = "apparel") =>
+    unwrap(await apiClient.post("/marketplace/sizes", { name, size_type: sizeType }));
 export const updateSize = async (id, name) => unwrap(await apiClient.put(`/marketplace/sizes/${id}`, { name }));
 export const deleteSize = async (id) => unwrap(await apiClient.delete(`/marketplace/sizes/${id}`));
 export const createColor = async (payload) => unwrap(await apiClient.post("/marketplace/colors", payload));
 export const updateColor = async (id, payload) => unwrap(await apiClient.put(`/marketplace/colors/${id}`, payload));
 export const deleteColor = async (id) => unwrap(await apiClient.delete(`/marketplace/colors/${id}`));
+export const createSport = async (name) => unwrap(await apiClient.post("/marketplace/sports", { name }));
+export const deleteSport = async (id) => unwrap(await apiClient.delete(`/marketplace/sports/${id}`));
 
 export const getSupplierProfile = async () => unwrap(await apiClient.get("/marketplace/supplier/profile"));
 export const updateSupplierProfile = async (payload) => unwrap(await apiClient.put("/marketplace/supplier/profile", payload));
+export const getSupplierDashboard = async () => unwrap(await apiClient.get("/marketplace/supplier/dashboard"));
 export const getSupplierProducts = async () => unwrap(await apiClient.get("/marketplace/supplier/products"));
 export const createSupplierProduct = async (payload) =>
     unwrap(await apiClient.post("/marketplace/supplier/products", payload));
-export const createProductVariants = async (productId, variants) =>
-    unwrap(await apiClient.post(`/marketplace/supplier/products/${productId}/variants`, variants));
+export const updateSupplierProduct = async (productId, payload) =>
+    unwrap(await apiClient.put(`/marketplace/supplier/products/${productId}`, payload));
+export const deleteSupplierProduct = async (productId) =>
+    unwrap(await apiClient.delete(`/marketplace/supplier/products/${productId}`));
+export const updateSupplierDiscount = async (productId, payload) =>
+    unwrap(await apiClient.put(`/marketplace/supplier/products/${productId}/discount`, payload));
+export const updateAdminDiscount = async (productId, payload) =>
+    unwrap(await apiClient.put(`/marketplace/admin/products/${productId}/discount`, payload));
+export const syncAdminProductVariants = async (productId, changes) =>
+    unwrap(await apiClient.put(`/marketplace/admin/products/${productId}/variants`, changes));
+export const updateAdminVariantStock = async (variantId, stockQuantity) =>
+    unwrap(await apiClient.put(`/marketplace/admin/variants/${variantId}/stock`, { stock_quantity: Number(stockQuantity) }));
+export const syncSupplierProductVariants = async (productId, changes) =>
+    unwrap(await apiClient.put(`/marketplace/supplier/products/${productId}/variants`, changes));
+export const getSupplierInventory = async (params = {}) =>
+    unwrap(await apiClient.get("/marketplace/supplier/inventory", { params }));
+export const updateSupplierProductStock = async (productId, stock) =>
+    unwrap(await apiClient.put(`/marketplace/supplier/inventory/${productId}`, { stock: Number(stock) }));
+export const updateSupplierVariantStock = async (variantId, stockQuantity) =>
+    unwrap(await apiClient.put(`/marketplace/supplier/variants/${variantId}/stock`, { stock_quantity: Number(stockQuantity) }));
 export const getSupplierSubOrders = async () => unwrap(await apiClient.get("/marketplace/supplier/suborders"));
 export const updateSubOrderStatus = async (id, fulfillmentStatus) =>
     unwrap(await apiClient.put(`/marketplace/supplier/suborders/${id}`, { fulfillment_status: fulfillmentStatus }));
@@ -27,6 +49,8 @@ export const getSuppliers = async (status = "") =>
 export const updateSupplier = async (id, payload) => unwrap(await apiClient.put(`/marketplace/suppliers/${id}`, payload));
 export const getModerationProducts = async (params = {}) =>
     unwrap(await apiClient.get("/marketplace/admin/products", { params }));
+export const getAdminInventory = async (params = {}) =>
+    unwrap(await apiClient.get("/marketplace/admin/inventory", { params }));
 export const moderateProduct = async (id, status, reason = "") =>
     unwrap(await apiClient.post(`/marketplace/admin/products/${id}/moderate`, { status, reason }));
 export const getAdminDashboard = async () => unwrap(await apiClient.get("/marketplace/admin/dashboard"));

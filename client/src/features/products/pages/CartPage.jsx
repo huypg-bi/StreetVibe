@@ -4,29 +4,31 @@ import { ArrowRight, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { getCart, removeCartItem, updateCartQuantity } from "../api/productsApi";
 import "../styles/atelierBrutal.css";
+import DiscountTag from "../../../shared/components/DiscountTag";
+import ProductPrice from "../../../shared/components/ProductPrice";
+import SoldOutOverlay from "../../../shared/components/SoldOutOverlay";
+import { getEffectivePrice } from "../../../shared/utils/pricing";
+import { getErrorMessage, toast } from "../../../shared/utils/toast";
 
 export default function CartPage() {
     const { user, token } = useAuth();
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [pendingItemIds, setPendingItemIds] = useState([]);
     const [recipient, setRecipient] = useState({});
 
     const loadCart = useCallback(async () => {
         if (!token) {
             setCartItems([]);
-            setError("");
             setLoading(false);
             return;
         }
         try {
-            const response = await getCart();
+            const response = await getCart({ refreshPrices: true });
             setCartItems(response.result.items);
-            setError("");
         } catch (loadError) {
             console.error("Lỗi khi tải giỏ hàng:", loadError);
-            setError("Không thể tải giỏ hàng. Vui lòng thử lại.");
+            toast.error("Không thể tải giỏ hàng. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
@@ -43,26 +45,26 @@ export default function CartPage() {
     };
 
     const updateItems = async (item, quantity) => {
-        const productId = item.product?._id;
-        if (!productId || pendingItemIds.includes(item.id)) return;
+        if (pendingItemIds.includes(item.id)) return;
 
         setPendingItemIds((ids) => [...ids, item.id]);
         try {
-            const response = quantity === 0
-                ? await removeCartItem(productId)
-                : await updateCartQuantity(productId, quantity);
-            setCartItems(response.result.items);
-            setError("");
+            if (quantity === 0) await removeCartItem(item.id);
+            else await updateCartQuantity(item.id, quantity);
+            // Tải lại giỏ để giữ đúng giá đang áp dụng
+            await loadCart();
+            if (quantity === 0) toast.success("Đã xóa sản phẩm khỏi giỏ hàng.");
         } catch (updateError) {
             console.error("Lỗi khi cập nhật giỏ hàng:", updateError);
-            setError("Không thể cập nhật giỏ hàng. Vui lòng thử lại.");
+            toast.error(getErrorMessage(updateError, "Không thể cập nhật giỏ hàng. Vui lòng thử lại."));
         } finally {
             setPendingItemIds((ids) => ids.filter((id) => id !== item.id));
         }
     };
 
-    const subtotal = cartItems.reduce(
-        (total, item) => total + Number(item.product?.price || 0) * item.quantity,
+    // Chỉ tính những sản phẩm đã chọn màu, size và còn hàng
+    const subtotal = cartItems.filter((item) => item.variant_id && item.available !== 0).reduce(
+        (total, item) => total + getEffectivePrice(item.product) * item.quantity,
         0
     );
 
@@ -94,8 +96,6 @@ export default function CartPage() {
                         </button>
                     </div>
 
-                    {error && <div className="cart-message error" role="alert">{error}</div>}
-
                     {!token ? (
                         <div className="cart-empty-state">
                             <p>Đăng nhập để xem giỏ hàng được lưu cho tài khoản của bạn.</p>
@@ -112,6 +112,14 @@ export default function CartPage() {
                         cartItems.map((item) => {
                             const product = item.product || {};
                             const busy = pendingItemIds.includes(item.id);
+                            const soldOut = item.available === 0;
+                            const stockWarning = !item.variant_id
+                                ? "Chưa chọn màu và size. Hãy xóa và thêm lại."
+                                : soldOut
+                                    ? "Đã hết hàng, không tính vào tổng tiền."
+                                    : item.available !== null && item.quantity > item.available
+                                        ? `Chỉ còn ${item.available} sản phẩm, hãy giảm số lượng.`
+                                        : "";
                             return (
                                 <div className={`cart-item-row${busy ? " is-updating" : ""}`} key={item.id}>
                                     <Link
@@ -122,12 +130,18 @@ export default function CartPage() {
                                         {product.image
                                             ? <img src={product.image} alt={product.name || "Sản phẩm"} />
                                             : <span className="cart-image-placeholder">NO IMAGE</span>}
+                                        {soldOut && <SoldOutOverlay compact />}
                                     </Link>
                                     <div className="cart-item-desc">
                                         <h4>{product.name || "Sản phẩm không có tên"}</h4>
                                         <strong>
-                                            {Number(product.price || 0).toLocaleString("vi-VN")} ₫
+                                            <ProductPrice product={product} />
                                         </strong>
+                                        <DiscountTag product={product} />
+                                        {item.variant_id && (
+                                            <p className="cart-item-variant">MÀU: {item.color_name} // SIZE: {item.size_name}</p>
+                                        )}
+                                        {stockWarning && <p className="cart-item-warning">{stockWarning}</p>}
                                     </div>
                                     <div className="cart-item-controls">
                                         <div className="qty-stepper-box">
@@ -141,7 +155,7 @@ export default function CartPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => updateItems(item, item.quantity + 1)}
-                                                disabled={busy}
+                                                disabled={busy || !item.variant_id || (item.available !== null && item.quantity >= item.available)}
                                                 aria-label="Tăng số lượng"
                                             >+</button>
                                         </div>
@@ -193,7 +207,7 @@ export default function CartPage() {
                     <section className="cart-recipient-section">
                         <div className="mono-spec cart-section-heading">[02 // THANH TOÁN]</div>
                         <p className="cart-account-note">
-                            Chức năng đặt hàng chưa khả dụng: dữ liệu giỏ hàng hiện chưa có biến thể và nhà cung cấp cần thiết cho API checkout.
+                            Chức năng đặt hàng chưa khả dụng.
                         </p>
                         <button type="submit" className="btn-brutal cart-checkout-button" disabled>
                             [TIẾN HÀNH THANH TOÁN &bull; {subtotal.toLocaleString("vi-VN")} ₫] <ArrowRight size={18} />

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { getWishlist, removeWishlist } from "../api/productsApi";
+import { getErrorMessage, toast } from "../../../shared/utils/toast";
 
 export default function WishlistPage() {
     const { token } = useAuth();
@@ -18,7 +19,10 @@ export default function WishlistPage() {
         // load() is an async refetch also reused by the remove handler below;
         // its setState calls run after the await, not synchronously in this effect.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        load().catch((error) => console.error(error));
+        load().catch((error) => {
+            console.error(error);
+            toast.error("Không thể tải wishlist.");
+        });
     }, [token, load]);
 
     if (!token) {
@@ -56,8 +60,14 @@ export default function WishlistPage() {
     }
 
     const handleRemove = async (id) => {
-        await removeWishlist(id);
-        load();
+        try {
+            await removeWishlist(id);
+            toast.success("Đã xóa khỏi wishlist.");
+            await load();
+        } catch (error) {
+            console.error(error);
+            toast.error(getErrorMessage(error, "Không thể cập nhật wishlist."));
+        }
     };
 
     return (

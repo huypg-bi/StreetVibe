@@ -27,10 +27,15 @@ func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
 	}
 
 	log.Println("Migrating product_db tables...")
+	// Kiểm tra trước khi migrate: chỉ dọn giá gốc một lần, khi database chưa có cột giảm giá
+	cleanAutoCost := db.Migrator().HasTable(&models.Product{}) &&
+		!db.Migrator().HasColumn(&models.Product{}, "discount_percent")
+
 	if err := db.AutoMigrate(
 		&models.Category{},
 		&models.Size{},
 		&models.Color{},
+		&models.Sport{},
 		&models.Product{},
 		&models.ProductVariant{},
 		&models.SupplierProfile{},
@@ -42,12 +47,33 @@ func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
 	); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
+	if cleanAutoCost {
+		if err := clearAutoFilledCost(db); err != nil {
+			return nil, fmt.Errorf("cost price cleanup failed: %w", err)
+		}
+	}
 	if err := seedCategoryGroups(db); err != nil {
 		return nil, fmt.Errorf("category group initialization failed: %w", err)
+	}
+	if err := seedDefaultSizesAndSports(db); err != nil {
+		return nil, fmt.Errorf("default sizes and sports initialization failed: %w", err)
+	}
+
+	if err := releaseVariantSKU(db); err != nil {
+		return nil, fmt.Errorf("variant SKU migration failed: %w", err)
+	}
+	if err := backfillSKUs(db); err != nil {
+		return nil, fmt.Errorf("SKU backfill failed: %w", err)
 	}
 
 	log.Println("Product database connected and migrated successfully!")
 	return db, nil
+}
+
+// clearAutoFilledCost xóa giá gốc từng được hệ thống tự điền bằng 125% giá bán,
+// vì giá gốc nay là giá nhập do Admin/Supplier tự nhập.
+func clearAutoFilledCost(db *gorm.DB) error {
+	return db.Exec("UPDATE products SET original_price = 0 WHERE ABS(original_price - price * 1.25) < 1").Error
 }
 
 func seedCategoryGroups(db *gorm.DB) error {
@@ -99,6 +125,46 @@ func seedCategoryGroups(db *gorm.DB) error {
 		parentID := groupIDs[groupName]
 		if err := db.Model(category).Update("parent_id", parentID).Error; err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func seedDefaultSizesAndSports(db *gorm.DB) error {
+	// Ensure footwear sizes 37..45 exist with size_type = 'footwear'
+	footwearSizes := []string{"37", "38", "39", "40", "41", "42", "43", "44", "45"}
+	for _, sName := range footwearSizes {
+		var existing models.Size
+		// Unscoped: size Admin đã xóa vẫn giữ tên, tạo lại sẽ trùng khóa và service không khởi động được
+		err := db.Unscoped().Where("name = ?", sName).First(&existing).Error
+		if err == gorm.ErrRecordNotFound {
+			if err := db.Create(&models.Size{Name: sName, SizeType: "footwear"}).Error; err != nil {
+				return err
+			}
+		} else if err == nil && existing.SizeType != "footwear" {
+			if err := db.Model(&existing).Update("size_type", "footwear").Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	// Ensure default sports exist if sports table is empty
+	var sportCount int64
+	if err := db.Unscoped().Model(&models.Sport{}).Count(&sportCount).Error; err != nil {
+		return err
+	}
+	if sportCount == 0 {
+		defaultSports := []models.Sport{
+			{Name: "Chạy bộ", Slug: "chay-bo"},
+			{Name: "Bóng rổ", Slug: "bong-ro"},
+			{Name: "Tập Gym", Slug: "tap-gym"},
+			{Name: "Đá bóng", Slug: "da-bong"},
+			{Name: "Lifestyle", Slug: "lifestyle"},
+		}
+		for _, sp := range defaultSports {
+			if err := db.Create(&sp).Error; err != nil {
+				return err
+			}
 		}
 	}
 	return nil
